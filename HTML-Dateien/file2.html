@@ -1,0 +1,113 @@
+<!-- HTML-Dokument mit einer Produkttabelle (aktualisierter Inhalt) -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produkt-Tabelle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 800px;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 0.75rem;
+            overflow: hidden; /* Für abgerundete Ecken der Tabelle */
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background-color: #4f46e5;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        tr:hover {
+            background-color: #eff6ff;
+        }
+        .text-indigo-600 {
+            color: #4f46e5;
+        }
+        .bg-indigo-100 {
+            background-color: #e0e7ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-2xl font-bold mb-6 text-center text-indigo-600">Produkt-Übersicht</h1>
+        <table class="min-w-full divide-y divide-gray-200 shadow-md rounded-lg">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider rounded-tl-lg">Produkt-ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Produktname</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">MAC-Adresse</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider rounded-tr-lg">Preis</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">201</td>
+                    <td class="px-6 py-4 whitespace-nowrap">Tablet Slim</td>
+                    <td class="px-6 py-4 whitespace-nowrap">A1:B2:C3:D4:E5:F6</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$650.00</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">202</td>
+                    <td class="px-6 py-4 whitespace-nowrap">Ergonomische Maus</td>
+                    <td class="px-6 py-4 whitespace-nowrap">12:34:56:78:9A:BC</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$45.00</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">203</td>
+                    <td class="px-6 py-4 whitespace-nowrap">Gaming-Headset Pro</td>
+                    <td class="px-6 py-4 whitespace-nowrap">FE:DC:BA:98:76:54</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$99.99</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">204</td>
+                    <td class="px-6 py-4 whitespace-nowrap">USB-C Hub</td>
+                    <td class="px-6 py-4 whitespace-nowrap">01:23:45:67:89:AB</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$35.00</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">205</td>
+                    <td class="px-6 py-4 whitespace-nowrap">4K Monitor</td>
+                    <td class="px-6 py-4 whitespace-nowrap">DE:AD:BE:EF:20:25</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$450.00</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">206</td>
+                    <td class="px-6 py-4 whitespace-nowrap">Webcam HD</td>
+                    <td class="px-6 py-4 whitespace-nowrap">CA:FE:BA:BE:00:01</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$60.00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
