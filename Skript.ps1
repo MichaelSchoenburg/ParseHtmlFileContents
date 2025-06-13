@@ -1,25 +1,68 @@
-# Dieses Skript demonstriert, wie man mit PowerShell Inhalte aus der Spalte "MAC-Adresse"
-# mehrerer HTML-Tabellen ausliest, aggregiert und in einer CSV-Datei speichert.
+<#
+.SYNOPSIS
+    Aggregiert Inhalte aus der Spalte "MAC-Adresse" mehrerer HTML-Tabellen aus mehreren ZIP-Dateien und speichert sie in einer CSV-Datei.
 
-# WICHTIGER HINWEIS:
-# Die Verwendung von ComObject "HTMLFile" funktioniert nur auf Windows-Systemen,
-# da sie die Internet Explorer-Engine nutzt. Für Cross-Plattform-Lösungen oder
-# modernere Web-Parsing-Anforderungen müssten Sie möglicherweise ein
-# .NET-basiertes HTML-Parsing-Framework (z.B. HTML Agility Pack) verwenden
-# oder die HTML-Daten mit regulären Ausdrücken bearbeiten (was komplexer ist).
+.DESCRIPTION
+    Dieses Skript durchsucht ein angegebenes Verzeichnis nach HTML-Dateien, extrahiert die Werte aus der angegebenen Spalte (standardmäßig "MAC-Adresse") aller enthaltenen Tabellen und speichert die aggregierten Ergebnisse in einer CSV-Datei.
 
-# --- KONFIGURATION ---
-# Definieren Sie das Verzeichnis, in dem sich Ihre HTML-Dateien befinden.
-# Sie können hier einen absoluten Pfad angeben oder einen relativen Pfad zum Skriptverzeichnis.
-$htmlFilesDirectory = Join-Path $PSScriptRoot "HTML-Dateien"
+.PARAMETER htmlFilesDirectory
+    Das Verzeichnis, in dem sich die HTML-Dateien befinden.
+    Standardwert: "$PSScriptRoot\HTML-Dateien"
 
-# Der Name der Spalte, deren Inhalt ausgelesen werden soll.
-$columnNameToSelect = "MAC-Adresse"
+.PARAMETER columnNameToSelect
+    Der Name der Tabellenspalte, deren Werte extrahiert werden sollen.
+    Standardwert: "MAC-Adresse"
 
-# Der Pfad zur Ausgabedatei (CSV), in der die aggregierten MAC-Adressen gespeichert werden.
-$outputCsvPath = $PSScriptRoot "aggregierte_mac_adressen.csv"
+.PARAMETER outputCsvPath
+    Der Pfad zur Ausgabedatei (CSV), in der die aggregierten MAC-Adressen gespeichert werden.
+    Standardwert: "$PSScriptRoot\aggregierte_mac_adressen.csv"
 
-# --- VORBEREITUNG ---
+.EXAMPLE
+    .\Skript.ps1
+    Führt das Skript mit den Standardwerten aus und speichert die aggregierten MAC-Adressen in einer CSV-Datei.
+
+.LINK
+    https://github.com/MichaelSchoenburg/ParseHtmlFileContents
+
+.NOTES
+    Autor: Michael Schönburg
+    Erstellt: 12.06.2025
+#>
+
+#region Parameter und Vorbereitung
+param(
+    [Parameter(Mandatory = $false)]
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if (-not ($_ -is [string] -and $_.Trim().Length -gt 0)) {
+            throw "Der Pfad darf nicht leer sein."
+        }
+        if (-not (Test-Path $_ -PathType Container)) {
+            throw "Der angegebene Pfad '$_' existiert nicht oder ist kein Verzeichnis."
+        }
+        return $true
+    })]
+    [string]
+    [string]$htmlFilesDirectory = (Join-Path $PSScriptRoot "HTML-Dateien"),
+
+    [Parameter(Mandatory = $false)]
+    [ValidateNotNullOrEmpty()]
+    [string]$columnNameToSelect = "MAC-Adresse",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if (-not ($_ -is [string] -and $_.Trim().Length -gt 0)) {
+            throw "Der Dateiname darf nicht leer sein."
+        }
+        if ($_ -notmatch '^[^\\/:*?"<>|]+?\.[a-zA-Z0-9]+$') {
+            throw "Der Ausgabepfad muss einen gültigen Dateinamen mit Dateiendung enthalten (z.B. 'datei.csv')."
+        }
+        return $true
+    })]
+    [string]$outputCsvPath = (Join-Path $PSScriptRoot "aggregierte_mac_adressen.csv")
+)
+
 # Überprüfen, ob das angegebene Verzeichnis existiert.
 if (-not (Test-Path $htmlFilesDirectory -PathType Container)) {
     Write-Error "Das Verzeichnis '$htmlFilesDirectory' wurde nicht gefunden. Bitte stellen Sie sicher, dass der Pfad korrekt ist."
@@ -27,30 +70,75 @@ if (-not (Test-Path $htmlFilesDirectory -PathType Container)) {
 }
 
 # Initialisieren einer Liste zum Speichern aller extrahierten MAC-Adressen als benutzerdefinierte Objekte.
-# Dies ist wichtig, damit die CSV-Datei eine korrekte Spaltenüberschrift hat.
 [System.Collections.ArrayList]$allMacAddresses = @()
+#endregion
 
-# --- VERARBEITUNG DER HTML-DATEIEN ---
+#region ZIP-Dateien durchsuchen und HTML extrahieren
 Write-Host "Starte die Verarbeitung der HTML-Dateien im Verzeichnis '$htmlFilesDirectory'..."
 
-# Durchsuchen aller .html-Dateien im angegebenen Verzeichnis.
-$htmlFiles = Get-ChildItem -Path $htmlFilesDirectory -Filter "*.html" -File
+$zipFiles  = Get-ChildItem -Path $htmlFilesDirectory -Filter "*.zip" -File -Recurse
+$htmlFiles = @()
 
-if ($htmlFiles.Count -eq 0) {
-    Write-Warning "Keine HTML-Dateien (*.html) im Verzeichnis '$htmlFilesDirectory' gefunden. Es gibt nichts zu verarbeiten."
-    exit
+foreach ($zip in $zipFiles) {
+    Write-Host "Durchsuche ZIP-Datei: $($zip.FullName)"
+    try {
+        $zipPath    = $zip.FullName
+        $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+        foreach ($entry in $zipArchive.Entries) {
+            if ($entry.FullName -match '\.html?$') {
+                Write-Host "  - HTML-Datei gefunden: $($entry.FullName) ($($entry.Length) Bytes)"
+
+                # Erzeuge ein eindeutiges temporäres Verzeichnis für die Extraktion
+                $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
+                if (-not (Test-Path $baseTempDir)) {
+                    New-Item -ItemType Directory -Path $baseTempDir | Out-Null
+                }
+                $tempDir = Join-Path -Path $baseTempDir -ChildPath ([System.IO.Path]::GetRandomFileName())
+                New-Item -ItemType Directory -Path $tempDir | Out-Null
+                $destPath = Join-Path $tempDir $entry.Name
+                Write-Host "    - Extrahiere $($entry.FullName) nach: $destPath"
+
+                $entryStream = $entry.Open()
+                $fileStream  = [System.IO.File]::OpenWrite($destPath)
+                $entryStream.CopyTo($fileStream)
+                $fileStream.Close()
+                $entryStream.Close()
+
+                $htmlFiles += $destPath
+            }
+        }
+        $zipArchive.Dispose()
+    }
+    catch {
+        Write-Warning "  Fehler beim Lesen von '$($zip.FullName)': $($_.Exception.Message)"
+    }
 }
 
+if (-not $htmlFiles -or $htmlFiles.Count -eq 0) {
+    Write-Error "Es wurden keine HTML-Dateien in den ZIP-Archiven gefunden. Skript wird beendet."
+    exit
+} else {
+    Write-Host "Insgesamt $($htmlFiles.Count) HTML-Dateien gefunden und extrahiert."
+    Write-Host "Extrahierte HTML-Dateien:"
+    foreach ($htmlFile in $htmlFiles) {
+        Write-Host " - $htmlFile"
+    }
+}
+#endregion
+
+#region HTML-Dateien verarbeiten und MAC-Adressen extrahieren
 foreach ($file in $htmlFiles) {
-    Write-Host "`nVerarbeite Datei: $($file.Name)"
-    $filePath = $file.FullName
+    Write-Host "Verarbeite Datei: $($file)"
+    $filePath = $file
+    $fileName = [System.IO.Path]::GetFileName($filePath)
 
     try {
         # Schritt 1: Das HTML-Dokument laden
         $htmlContent = Get-Content -Path $filePath -Raw
 
         # Erstellen eines HTML-Dokumentobjekts
-        $htmlDoc = New-Object -ComObject "HTMLFile"
+        $htmlDoc     = New-Object -ComObject "HTMLFile"
+
         # HTML-Inhalt korrekt laden (funktioniert nur in PS 5.1 oder höher)
         $htmlDoc.IHTMLDocument2_write($htmlContent)
 
@@ -58,9 +146,9 @@ foreach ($file in $htmlFiles) {
         # Wir suchen die erste Tabelle im Dokument.
         $table = $htmlDoc.getElementsByTagName("table") | Select-Object -First 1
 
-        if ($table -eq $null) {
-            Write-Warning "  Warnung: Keine Tabelle in Datei '$($file.Name)' gefunden. Überspringe diese Datei."
-            continue # Springe zur nächsten Datei
+        if ($null -eq $table) {
+            Write-Warning "  Warnung: Keine Tabelle in Datei '$($fileName)' gefunden. Überspringe diese Datei."
+            continue
         }
 
         # Schritt 3: Den Index der gewünschten Spalte bestimmen
@@ -76,8 +164,8 @@ foreach ($file in $htmlFiles) {
         }
 
         if ($columnIndex -eq -1) {
-            Write-Warning "  Warnung: Spalte '$columnNameToSelect' nicht in Datei '$($file.Name)' gefunden. Überspringe diese Datei."
-            continue # Springe zur nächsten Datei
+            Write-Warning "  Warnung: Spalte '$columnNameToSelect' nicht in Datei '$($fileName)' gefunden. Überspringe diese Datei."
+            continue
         }
 
         Write-Host "  Suche nach '$columnNameToSelect' (Index $columnIndex)..."
@@ -85,8 +173,8 @@ foreach ($file in $htmlFiles) {
         # Schritt 4: Inhalte aus der ausgewählten Spalte auslesen
         # Nur die Zeilen des <tbody> betrachten, falls vorhanden, sonst alle tr-Elemente nach der Kopfzeile.
         $dataRows = @()
-        $tbody = $table.getElementsByTagName("tbody") | Select-Object -First 1
-        if ($tbody -ne $null) {
+        $tbody    = $table.getElementsByTagName("tbody") | Select-Object -First 1
+        if ($null -ne $tbody) {
             $dataRows = $tbody.getElementsByTagName("tr")
         } else {
             # Wenn kein tbody gefunden wird, nehmen wir an, die erste tr ist die Kopfzeile
@@ -97,7 +185,7 @@ foreach ($file in $htmlFiles) {
         }
 
         if ($dataRows.Count -eq 0) {
-            Write-Host "  Keine Datenzeilen in der Tabelle von '$($file.Name)' gefunden."
+            Write-Host "  Keine Datenzeilen in der Tabelle von '$($fileName)' gefunden."
             continue
         }
 
@@ -112,22 +200,36 @@ foreach ($file in $htmlFiles) {
                 }
             }
         }
-    }
-    catch {
-        Write-Error "  Fehler beim Verarbeiten der Datei '$($file.Name)': $($_.Exception.Message)"
+    } catch {
+        Write-Error "  Fehler beim Verarbeiten der Datei '$($fileName)': $($_.Exception.Message)"
         # Fährt fort mit der nächsten Datei, auch wenn ein Fehler auftritt
     }
 }
+#endregion
 
-# --- EXPORT ZUR CSV-DATEI ---
+#region Export zur CSV-Datei
 if ($allMacAddresses.Count -gt 0) {
-    Write-Host "`nAlle MAC-Adressen wurden gesammelt. Exportiere nach '$outputCsvPath'..."
+    Write-Host "Alle MAC-Adressen wurden gesammelt. Exportiere nach '$outputCsvPath'..."
     $allMacAddresses | Export-Csv -Path $outputCsvPath -NoTypeInformation -Encoding UTF8
 
-    Write-Host "`nErfolgreich aggregierte MAC-Adressen in '$outputCsvPath' gespeichert."
+    Write-Host "Erfolgreich aggregierte MAC-Adressen in '$outputCsvPath' gespeichert."
     Write-Host "Anzahl der gefundenen Einträge: $($allMacAddresses.Count)"
 } else {
-    Write-Warning "`nKeine MAC-Adressen in den verarbeiteten Dateien gefunden. Es wurde keine CSV-Datei erstellt."
+    Write-Warning "Keine MAC-Adressen in den verarbeiteten Dateien gefunden. Es wurde keine CSV-Datei erstellt."
+}
+#endregion
+
+#region Aufräumen
+Write-Host "Bereinige temporäre Dateien und Ordner..."
+
+# Lösche die temporär angelegten Ordner inkl. Dateien darin
+try {
+    Remove-Item -Path $baseTempDir -Recurse -Force -ErrorAction Stop
+    Write-Host "Temporärer Ordner gelöscht: $baseTempDir"
+} catch {
+    Write-Warning "Konnte temporären Ordner '$baseTempDir' nicht löschen: $($_.Exception.Message)"
 }
 
-Write-Host "`nSkriptausführung abgeschlossen."
+#endregion
+
+Write-Host "Skriptausführung abgeschlossen."
