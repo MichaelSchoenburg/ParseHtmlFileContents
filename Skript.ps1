@@ -21,6 +21,8 @@
     .\Skript.ps1
     Führt das Skript mit den Standardwerten aus und speichert die aggregierten MAC-Adressen in einer CSV-Datei.
 
+    .\Skript.ps1 -ZipOrdner "Pfad\zu\deinen\ZIPs" -CsvDatei "output.csv" -columnNameToSelect "MAC-Adresse"
+    Führt das Skript aus und gibt den Pfad zu den ZIP-Dateien und die gewünschte CSV-Ausgabedatei an.
 .LINK
     https://github.com/MichaelSchoenburg/ParseHtmlFileContents
 
