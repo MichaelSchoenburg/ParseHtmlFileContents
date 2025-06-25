@@ -77,7 +77,7 @@ param(
         if (-not ($_ -is [string] -and $_.Trim().Length -gt 0)) {
             throw "Der Pfad darf nicht leer sein."
         }
-        if (-not (Test-Path $_ -PathType Container)) {
+        if (-not (Test-Path $_ -PathType File)) {
             throw "Der angegebene Pfad '$_' existiert nicht oder ist kein Verzeichnis."
         }
         return $true
