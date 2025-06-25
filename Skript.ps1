@@ -69,6 +69,9 @@ param(
     #>
 )
 
+# Assembly laden, um ZIP-Dateien zu bearbeiten
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
 # Initialisieren einer Liste zum Speichern aller extrahierten MAC-Adressen als benutzerdefinierte Objekte.
 [System.Collections.ArrayList]$allMacAddresses = @()
 
