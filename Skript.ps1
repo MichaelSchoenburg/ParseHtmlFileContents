@@ -97,37 +97,45 @@ Write-Host "Starte die Verarbeitung aller HTML-Dateien aus allen ZIP-Dateien im 
 $zipFiles  = Get-ChildItem -Path $ZipFilesDirectory -Filter "*.zip" -File -Recurse
 $htmlFiles = @()
 
+<# 
+    $zip = Get-Item "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\t-p031ait_TSR20250610103420_7V7V994.zip"
+#>
 foreach ($zip in $zipFiles) {
-    Write-Host "Durchsuche ZIP-Datei nach HTML-Datei: $($zip.FullName)"
-    try {
-        $zipPath    = $zip.FullName
-        $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
-        foreach ($entry in $zipArchive.Entries) {
-            if ($entry.FullName -match '\.html?$') {
-                Write-Host "  - HTML-Datei gefunden: $($entry.FullName) ($($entry.Length) Bytes)"
-
-                # Erzeuge ein eindeutiges temporäres Verzeichnis für die Extraktion
-                $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
-                if (-not (Test-Path $baseTempDir)) {
-                    New-Item -ItemType Directory -Path $baseTempDir | Out-Null
-                }
-                $tempDir = Join-Path -Path $baseTempDir -ChildPath ([System.IO.Path]::GetRandomFileName())
-                New-Item -ItemType Directory -Path $tempDir | Out-Null
-                $destPath = Join-Path $tempDir $entry.Name
-                Write-Host "    - Extrahiere $($entry.FullName) nach: $destPath"
-
-                $entryStream = $entry.Open()
-                $fileStream  = [System.IO.File]::OpenWrite($destPath)
-                $entryStream.CopyTo($fileStream)
-                $fileStream.Close()
-                $entryStream.Close()
-
-                $htmlFiles += $destPath
-            }
-        }
-        $zipArchive.Dispose()
+    Write-Host "Erstelle ein temporäres Verzeichnis für die Extraktion der ZIP- und HTML-Dateien..."
+    $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
+    if (-not (Test-Path $baseTempDir)) {
+        New-Item -ItemType Directory -Path $baseTempDir | Out-Null
     }
-    catch {
+    $tempDir = Join-Path -Path $baseTempDir -ChildPath ([System.IO.Path]::GetRandomFileName())
+    New-Item -ItemType Directory -Path $tempDir | Out-Null
+
+    Write-Host "Extrahiere ZIP-Datei: $($zip.FullName)"
+    try {
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($zip.FullName, $tempDir)
+        $SubZipFiles = Get-ChildItem -Path $tempDir -Filter "*.zip" -File
+        
+        foreach ($subZip in $SubZipFiles) {
+            Write-Host "Durchsuche ZIP-Datei nach HTML-Datei: $($subZip.FullName)"
+            $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($subZip.FullName)
+            foreach ($entry in $zipArchive.Entries) {
+                if ($entry.FullName -match '\.html?$') {
+                    Write-Host "  - HTML-Datei gefunden: $($entry.FullName) ($($entry.Length) Bytes)"
+
+                    $destPath = Join-Path $tempDir $entry.Name
+                    Write-Host "    - Extrahiere $($entry.FullName) nach: $destPath"
+
+                    $entryStream = $entry.Open()
+                    $fileStream  = [System.IO.File]::OpenWrite($destPath)
+                    $entryStream.CopyTo($fileStream)
+                    $fileStream.Close()
+                    $entryStream.Close()
+
+                    $htmlFiles += $destPath
+                }
+            }
+            $zipArchive.Dispose()
+        }
+    } catch {
         Write-Warning "  Fehler beim Lesen von '$($zip.FullName)': $($_.Exception.Message)"
     }
 }
