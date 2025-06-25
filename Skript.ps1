@@ -95,7 +95,7 @@ if (-not (Get-Module -Name Selenium)) {
 #endregion
 
 #region Extrahieren
-Write-Host "Starte die Verarbeitung aller HTML-Dateien aus allen ZIP-Dateien im Verzeichnis '$ZipFilesDirectory'..."
+Write-Host "Starte die Verarbeitung aller ZIP-Dateien im Verzeichnis '$ZipFilesDirectory'..."
 
 $zipFiles  = Get-ChildItem -Path $ZipFilesDirectory -Filter "*.zip" -File -Recurse
 $htmlFiles = @()
@@ -104,6 +104,7 @@ $htmlFiles = @()
     $zip = Get-Item "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\t-p031ait_TSR20250610103420_7V7V994.zip"
 #>
 foreach ($zip in $zipFiles) {
+    Write-Host "Verarbeite ZIP-Datei: $($zip.FullName)"
     Write-Host "Erstelle ein temporäres Verzeichnis für die Extraktion der ZIP- und HTML-Dateien..."
     $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
     if (-not (Test-Path $baseTempDir)) {
@@ -111,12 +112,16 @@ foreach ($zip in $zipFiles) {
     }
     $tempDir = Join-Path -Path $baseTempDir -ChildPath ([System.IO.Path]::GetRandomFileName())
     New-Item -ItemType Directory -Path $tempDir | Out-Null
+    Write-Host "Temporäres Verzeichnis erstellt: $tempDir"
 
     Write-Host "Extrahiere ZIP-Datei: $($zip.FullName)"
     try {
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zip.FullName, $tempDir)
+
+        Write-Host "Suche ZIP-Dateien im temporären Verzeichnis '$tempDir'..."
         $SubZipFiles = Get-ChildItem -Path $tempDir -Filter "*.zip" -File
-        
+        Write-Host "Gefundene ZIP-Dateien: $($SubZipFiles.FullName)"
+
         foreach ($subZip in $SubZipFiles) {
             Write-Host "Durchsuche ZIP-Datei nach HTML-Datei: $($subZip.FullName)"
             $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($subZip.FullName)
