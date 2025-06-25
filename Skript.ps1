@@ -63,10 +63,26 @@ param(
         }
         return $true
     })]
-    [string]$PathToExcelFile
+    [string]$PathToExcelFile,
     <# 
         $PathToExcelFile = "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\Airbus REF System Doc Komplett v1.9 - Test.xlsx"
     #>
+
+    [Parameter(
+        Mandatory = $false,
+        HelpMessage = "Dies ist der Pfad zum WebDriver für Microsoft Edge. Der WebDriver muss dieselbe Version, wie der Edge haben. Die Datei heißt entweder msedgedriver.exe oder MicrosoftWebDriver.exe und kann hier heruntergeladen werden: https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver."
+    )]
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if (-not ($_ -is [string] -and $_.Trim().Length -gt 0)) {
+            throw "Der Pfad darf nicht leer sein."
+        }
+        if (-not (Test-Path $_ -PathType Container)) {
+            throw "Der angegebene Pfad '$_' existiert nicht oder ist kein Verzeichnis."
+        }
+        return $true
+    })]
+    [string]$PathToEdgeDriver
 )
 
 # Assembly laden, um ZIP-Dateien zu bearbeiten
@@ -171,8 +187,8 @@ foreach ($file in $htmlFiles) {
     $fileName = [System.IO.Path]::GetFileName($filePath)
 
     try {
-        # Create a new instance of the Chrome driver
-        $driver = Start-SeEdge
+        # Create a new instance of the Edge driver
+        $driver = Start-SeEdge -DriverPath $PathToEdgeDriver
 
         # Navigate to a website
         $driver.Navigate().GoToUrl($filePath)
