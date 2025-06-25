@@ -181,28 +181,26 @@ foreach ($file in $htmlFiles) {
     Write-Host "Verarbeite Datei: $($file)"
     $filePath = $file
     <# 
-        $filePath = "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\export.html"
         $filePath = "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\viewer.html"
     #>
     $fileName = [System.IO.Path]::GetFileName($filePath)
 
     try {
         # Create a new instance of the Edge driver
-        $driver = Start-SeEdge -DriverPath $PathToEdgeDriver
+        $driver = Start-SeEdge
 
         # Navigate to a website
         $driver.Navigate().GoToUrl($filePath)
 
         # Modell auslesen
-        Write-Host "Lese Modellinformationen aus..."
-        $Modell = $driver.FindElementByXPath("/html/body/main/div/div/router-view/div/div/div/div[1]/system-summary/article/div[3]/div/table/tbody/tr[1]/td/span").Text
-        Write-Host "Modell: $Modell" -ForegroundColor Green
+        # Write-Host "Lese Modellinformationen aus..."
+        # $Modell = $driver.FindElementByXPath("/html/body/main/div/div/router-view/div/div/div/div[1]/system-summary/article/div[3]/div/table/tbody/tr[1]/td/span").Text
+        # Write-Host "Modell: $Modell" -ForegroundColor Green
 
         # Servername auslesen
         Write-Host "Lese Servername aus..."
-        $navElement17 = $driver.FindElementByXPath("/html/body/aside/nav/ul/li[16]/div/a")
-        $navElement17.Click()
-
+        
+        $driver.Navigate().GoToUrl("$($filePath)#/hardware/system-setup")
         $DnsIdracName = $driver.FindElementByXPath("//div[@class='key' and normalize-space(text())='DNS iDRAC Name']")
         $ServernameWithIdrac = $DnsIdracName.FindElementByXPath("following-sibling::*[1]").Text.Trim()
         $Servername = $ServernameWithIdrac -replace '-idrac$', ''
@@ -212,22 +210,19 @@ foreach ($file in $htmlFiles) {
         # iDrac-MAC-Adresse auslesen
         Write-Host "Lese iDrac-MAC-Adresse aus..."
 
-        $navElement = $driver.FindElementByXPath("/html/body/aside/nav/ul/li[4]")
-        $navElement.Click()
-
-        $IdracMacAddress = $driver.FindElementByXPath("/html/body/main/div/div/router-view/div/div/div/div[2]/article[2]/div[3]/div/table/tbody/tr[5]/td").Text
-
+        $driver.Navigate().GoToUrl("$($filePath)#/hardware/systemboard")
+        $macAddressHeader = $driver.FindElementByXPath("//th[normalize-space(text())='MAC Address']")
+        $IdracMacAddress = $macAddressHeader.FindElementByXPath("following-sibling::td[1]").Text.Trim()
         Write-Host "iDrac-MAC-Adresse: $IdracMacAddress" -ForegroundColor Green
 
         # Tabelle mit MAC-Adressen auslesen
         Write-Host "Lese alle MAC-Adressen aus..."
 
         # Klicke auf den Navigationspunkt "Ethernet"
-        $navElement11 = $driver.FindElementByXPath("/html/body/aside/nav/ul/li[11]/div/a")
-        $navElement11.Click()
+        $driver.Navigate().GoToUrl("$($filePath)#/hardware/ethernet")
 
-        # Tabelle per XPath finden
-        $table = $driver.FindElementByXPath("/html/body/main/div/div/router-view/div/div/div/div[1]/article/div[3]/div/table")
+        # Die erste Tabelle auf der Seite finden
+        $table = $driver.FindElementByXPath("(//table)[1]")
 
         # Alle Zeilen (tr) holen
         $rows = $table.FindElements([OpenQA.Selenium.By]::TagName("tr"))
