@@ -205,6 +205,10 @@ foreach ($file in $htmlFiles) {
         # Klicke auf den Navigationspunkt "Ethernet"
         $driver.Navigate().GoToUrl("$($filePath)#/hardware/ethernet")
 
+        # Warte, bis die Seite vollständig geladen ist
+        # Warte, bis das Element <td>AutoNegotiation</td> geladen wurde (Timeout: 30 Sekunden)
+        $null = Find-SeElement -driver $driver -By XPath "//td[normalize-space(text())='AutoNegotiation']" -Timeout 6
+
         # Die erste Tabelle auf der Seite finden
         $table = $driver.FindElementByXPath("(//table)[1]")
 
