@@ -63,7 +63,7 @@ param(
         }
         return $true
     })]
-    [string]$PathToExcelFile,
+    [string]$PathToExcelFile
     <# 
         $PathToExcelFile = "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\Airbus REF System Doc Komplett v1.9 - Test.xlsx"
     #>
