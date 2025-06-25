@@ -58,9 +58,6 @@ param(
         if (-not ($_ -is [string] -and $_.Trim().Length -gt 0)) {
             throw "Der Dateiname darf nicht leer sein."
         }
-        if ($_ -notmatch '^[^\\/:*?"<>|]+?\.xlsx$') {
-            throw "Der Pfad zur Excel-Datei muss einen gültigen Dateinamen mit Dateiendung enthalten (z.B. 'datei.xlsx')."
-        }
         if (-not (Test-Path $_)) {
             throw "Die Datei $_ konnte nicht gefunden werden. Bitte überprüfen Sie den Pfad."
         }
