@@ -202,10 +202,20 @@ foreach ($file in $htmlFiles) {
         # iDrac-MAC-Adresse auslesen
         Write-Verbose "Lese iDrac-MAC-Adresse aus..."
 
-        $driver.Navigate().GoToUrl("$($filePath)#/hardware/systemboard")
-        $macAddressHeader = $driver.FindElementByXPath("//th[normalize-space(text())='MAC Address']")
-        $IdracMacAddress = $macAddressHeader.FindElementByXPath("following-sibling::td[1]").Text.Trim()
-        Write-Debug "iDrac-MAC-Adresse: $IdracMacAddress"
+        try {
+            $driver.Navigate().GoToUrl("$($filePath)#/hardware/systemboard")
+            Write-Verbose "Navigiere zu Systemboard-Seite: $($filePath)#/hardware/systemboard"
+            $macAddressHeader = $driver.FindElementByXPath("//th[normalize-space(text())='MAC Address']")
+            Write-Verbose "Header 'MAC Address' gefunden."
+            $IdracMacAddress = $macAddressHeader.FindElementByXPath("following-sibling::td[1]").Text.Trim()
+            Write-Debug "iDrac-MAC-Adresse extrahiert: '$IdracMacAddress'"
+            if ([string]::IsNullOrWhiteSpace($IdracMacAddress)) {
+                throw "Die iDrac-MAC-Adresse konnte nicht ausgelesen werden oder ist leer."
+            }
+        } catch {
+            Write-Error "Fehler beim Auslesen der iDrac-MAC-Adresse für Datei '$fileName': $($_.Exception.Message)" -ErrorAction Continue
+            $IdracMacAddress = "Fehler"
+        }
 
         # Tabelle mit MAC-Adressen auslesen
         Write-Verbose "Lese alle MAC-Adressen aus..."
