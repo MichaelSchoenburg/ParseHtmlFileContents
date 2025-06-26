@@ -209,12 +209,11 @@ foreach ($file in $htmlFiles) {
         # Warte, bis die Seite vollständig geladen ist
         Write-Verbose "Warte 2 Sekunden auf das Laden der Ethernet-Seite..."
         Start-Sleep -Seconds 2
-        $driver.Manage().Timeouts().ImplicitWait = [System.TimeSpan]::FromSeconds(0)
         $wait = New-Object OpenQA.Selenium.Support.UI.WebDriverWait($driver, [System.TimeSpan]::FromSeconds(6))
         try {
-            $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//td[normalize-space(text())='AutoNegotiation']")))
-            $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//h2[@class='ui left header' and contains(text(),'Part Information')]")))
-            $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//tbody/tr/td[normalize-space(text())='AutoNegotiation']")))
+            $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//td[normalize-space(text())='AutoNegotiation']")))
+            $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//h2[@class='ui left header' and contains(text(),'Part Information')]")))
+            $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//tbody/tr/td[normalize-space(text())='AutoNegotiation']")))
         } catch {
             throw "Timeout: Das erforderliche Element auf der Ethernet-Seite konnte nicht gefunden werden. Die Webseite wurde wohl nicht vollständig geladen. Skript wird abgebrochen."
         }
