@@ -213,6 +213,7 @@ foreach ($file in $htmlFiles) {
             $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//td[normalize-space(text())='AutoNegotiation']")))
             $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//h2[@class='ui left header' and contains(text(),'Part Information')]")))
             $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//tbody/tr/td[normalize-space(text())='AutoNegotiation']")))
+            $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//th[normalize-space(text())='Firmware']")))
         } catch {
             throw "Timeout: Das erforderliche Element auf der Ethernet-Seite konnte nicht gefunden werden. Die Webseite wurde wohl nicht vollständig geladen. Skript wird abgebrochen."
         }
