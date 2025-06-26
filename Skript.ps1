@@ -64,16 +64,10 @@ param(
         return $true
     })]
     [string]$PathToExcelFile
-    <# 
-        $PathToExcelFile = "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\Airbus REF System Doc Komplett v1.9 - Test.xlsx"
-    #>
 )
 
 # Assembly laden, um ZIP-Dateien zu bearbeiten
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-# Initialisieren einer Liste zum Speichern aller extrahierten MAC-Adressen als benutzerdefinierte Objekte.
-[System.Collections.ArrayList]$allMacAddresses = @()
 
 # PowerShell-Modul "Selenium" importieren
 Write-Verbose "Prüfe, ob das Selenium-Modul installiert ist..."
@@ -100,9 +94,6 @@ Write-Verbose "Starte die Verarbeitung aller ZIP-Dateien im Verzeichnis '$ZipFil
 $zipFiles  = Get-ChildItem -Path $ZipFilesDirectory -Filter "*.zip" -File -Recurse
 $htmlFiles = @()
 
-<# 
-    $zip = Get-Item "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\t-p031ait_TSR20250610103420_7V7V994.zip"
-#>
 foreach ($zip in $zipFiles) {
     Write-Verbose "Verarbeite ZIP-Datei: $($zip.FullName)"
     Write-Verbose "Erstelle ein temporäres Verzeichnis für die Extraktion der ZIP- und HTML-Dateien..."
@@ -164,9 +155,6 @@ if (-not $htmlFiles -or $htmlFiles.Count -eq 0) {
 foreach ($file in $htmlFiles) {
     Write-Verbose "Verarbeite Datei: $($file)"
     $filePath = $file
-    <# 
-        $filePath = "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\viewer.html"
-    #>
     $fileName = [System.IO.Path]::GetFileName($filePath)
 
     try {
