@@ -283,7 +283,7 @@ foreach ($file in $htmlFiles) {
 
         # Ausgabe prüfen
         Write-Verbose "Extrahierte Daten aus der Tabelle:"
-        $($Nics | Format-Table -AutoSize | Out-String) | Write-Verbose})
+        $($Nics | Format-Table -AutoSize | Out-String | Write-Verbose)
 
         #endregion
 
