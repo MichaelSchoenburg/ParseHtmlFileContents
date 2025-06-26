@@ -1,4 +1,21 @@
 # ParseHtmlFileContents
+[![CodeFactor](https://www.codefactor.io/repository/github/michaelschoenburg/parsehtmlfilecontents/badge/main?style=for-the-badge)](https://www.codefactor.io/repository/github/michaelschoenburg/parsehtmlfilecontents/overview/main?style=for-the-badge) ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/michaelschoenburg/parsehtmlfilecontents/main?display_timestamp=author&style=for-the-badge) ![PSScriptAnalyzer](https://github.com/michaelschoenburg/ParseHtmlFileContents/actions/workflows/psscriptanalyzer.yml/badge.svg)
+
+## Inhaltsverzeichnis
+
+- [Übersicht](#übersicht)
+- [Was macht das Skript?](#was-macht-das-skript)
+- [Nutzung](#nutzung)
+- [Parameter](#parameter)
+- [Erwartete Datenstruktur](#erwartete-datenstruktur)
+- [Beispielaufruf](#beispielaufruf)
+- [Ausführliche Ausgaben](#ausführliche-ausgaben)
+- [Anforderungen](#anforderungen)
+- [Fehler & Support](#fehler--support)
+- [Lizenz](#lizenz)
+- [Autor](#autor)
+
+---
 
 ## Übersicht
 
@@ -30,20 +47,51 @@ Dieses PowerShell-Skript automatisiert das Extrahieren und Aggregieren von MAC-A
                 -Verbose
    ```
 
+   > **Hinweis:**  
+   > Falls beim Ausführen des Skripts eine Fehlermeldung bezüglich der Ausführungsrichtlinie (`Execution Policy`) erscheint, kann das Skript mit folgendem Befehl gestartet werden, um die Richtlinie temporär zu umgehen:
+   > 
+   > ```powershell
+   > powershell.exe -ExecutionPolicy Bypass -File .\Skript.ps1 -ZipFilesDirectory "C:\Pfad\zu\deinen\ZIPs" -PathToExcelFile "C:\Pfad\zur\Exceldatei.xlsx"
+   > ```
+
 ---
 
-## Parameter
 
 | Parameter            | Beschreibung                                                                                                  | Pflicht? | Standardwert                      |
 |----------------------|---------------------------------------------------------------------------------------------------------------|----------|-----------------------------------|
 | `-ZipFilesDirectory` | Pfad zum Ordner mit den ZIP-Dateien, in denen sich die HTML-Dateien befinden.                                 | Nein     | Skriptverzeichnis                 |
 | `-PathToExcelFile`   | Pfad zur bestehenden Excel-Datei, in die die Daten eingetragen werden sollen.                                 | Ja       | -                                 |
+| `-Verbose`           | Gibt während der Ausführung detaillierte Statusmeldungen aus (z.B. welche Datei gerade verarbeitet wird).     | Nein     | Ausgeschaltet                     |
+| `-Debug`             | Zeigt noch detailliertere Informationen und Zwischenschritte für die Fehlersuche an.                          | Nein     | Ausgeschaltet                     |
+
 
 **Hinweise:**
 - Die Excel-Datei muss bereits existieren.
-- Die ZIP-Dateien können auch verschachtelt sein (ZIP-in-ZIP wird unterstützt).
+- Es wird erwartet, dass die ZIP-Dateien eine Ebene verschachtelt sind (ZIP-in-ZIP). Siehe auch die folgende Erklärung ("Erwartete Datenstruktur").
 
 ---
+
+## Erwartete Datenstruktur
+
+Im angegebenen Ordner muss sich, in beliebiger Tiefe (rekursiv), mindestens eine ZIP-Datei befinden. Innerhalb dieser ZIP-Datei muss sich wiederum, ebenfalls rekursiv, eine weitere ZIP-Datei befinden. In dieser letzten ZIP-Datei muss sich schließlich, wiederum rekursiv, eine HTML-Datei befinden. Diese HTML-Datei wird für die weitere Verarbeitung genutzt.
+
+Die Verarbeitungslogik sucht also rekursiv nach ZIP-Dateien, entpackt diese und sucht weiter, bis eine HTML-Datei gefunden wird.
+
+### Veranschaulichung der Datenstruktur
+
+```text
+Wurzelordner
+└── (beliebige Unterordner)
+   └── ErsteEbene.zip
+      └── (beliebige Unterordner in ZIP)
+         └── ZweiteEbene.zip
+            └── (beliebige Unterordner in ZIP)
+               └── Datei.html
+```
+
+- **Wurzelordner**: Startpunkt der Suche
+- **ZIP-in-ZIP**: ZIP-Dateien können beliebig verschachtelt sein
+- **HTML-Datei**: Ziel der Suche, wird extrahiert und verarbeitet
 
 ## Beispielaufruf
 
@@ -83,14 +131,3 @@ Beispiel für Debug-Ausgabe:
 - Für Fragen oder Hilfestellung gerne ebenfalls ein Issue erstellen.
 
 ---
-
-## Lizenz
-
-Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](LICENSE) für Details.
-
----
-
-## Autor
-
-Michael Schönburg  
-Stand:
