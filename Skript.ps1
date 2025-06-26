@@ -164,11 +164,6 @@ foreach ($file in $htmlFiles) {
         # Navigate to a website
         $driver.Navigate().GoToUrl($filePath)
 
-        # Modell auslesen
-        # Write-Verbose "Lese Modellinformationen aus..."
-        # $Modell = $driver.FindElementByXPath("/html/body/main/div/div/router-view/div/div/div/div[1]/system-summary/article/div[3]/div/table/tbody/tr[1]/td/span").Text
-        # Write-Verbose "Modell: $Modell" -ForegroundColor Green
-
         # Servername auslesen
         Write-Verbose "Lese Servername aus..."
 
