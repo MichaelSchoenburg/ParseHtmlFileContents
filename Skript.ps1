@@ -207,7 +207,8 @@ foreach ($file in $htmlFiles) {
         $driver.Navigate().GoToUrl("$($filePath)#/hardware/ethernet")
 
         # Warte, bis die Seite vollständig geladen ist
-        Write-Verbose "Warte auf das Laden der Ethernet-Seite..."
+        Write-Verbose "Warte 2 Sekunden auf das Laden der Ethernet-Seite..."
+        Start-Sleep -Seconds 2
         $driver.Manage().Timeouts().ImplicitWait = [System.TimeSpan]::FromSeconds(0)
         $wait = New-Object OpenQA.Selenium.Support.UI.WebDriverWait($driver, [System.TimeSpan]::FromSeconds(6))
         try {
