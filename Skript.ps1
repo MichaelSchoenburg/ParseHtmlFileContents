@@ -76,26 +76,26 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.Collections.ArrayList]$allMacAddresses = @()
 
 # PowerShell-Modul "Selenium" importieren
-Write-Host "Prüfe, ob das Selenium-Modul installiert ist..."
+Write-Verbose "Prüfe, ob das Selenium-Modul installiert ist..."
 if (-not (Get-Module -ListAvailable -Name Selenium)) {
-    Write-Host "PowerShell-Modul 'Selenium' wird installiert..."
+    Write-Verbose "PowerShell-Modul 'Selenium' wird installiert..."
     Install-Module -Name Selenium -Scope CurrentUser -Force
 } else {
-    Write-Host "PowerShell-Modul 'Selenium' ist bereits installiert."
+    Write-Verbose "PowerShell-Modul 'Selenium' ist bereits installiert."
 }
 
-Write-Host "Prüfe, ob das Selenium-Modul geladen ist..."
+Write-Verbose "Prüfe, ob das Selenium-Modul geladen ist..."
 if (-not (Get-Module -Name Selenium)) {
     Import-Module Selenium
-    Write-Host "PowerShell-Modul 'Selenium' wurde importiert."
+    Write-Verbose "PowerShell-Modul 'Selenium' wurde importiert."
 } else {
-    Write-Host "PowerShell-Modul 'Selenium' ist bereits geladen."
+    Write-Verbose "PowerShell-Modul 'Selenium' ist bereits geladen."
 }
 
 #endregion
 
 #region Extrahieren
-Write-Host "Starte die Verarbeitung aller ZIP-Dateien im Verzeichnis '$ZipFilesDirectory'..."
+Write-Verbose "Starte die Verarbeitung aller ZIP-Dateien im Verzeichnis '$ZipFilesDirectory'..."
 
 $zipFiles  = Get-ChildItem -Path $ZipFilesDirectory -Filter "*.zip" -File -Recurse
 $htmlFiles = @()
@@ -104,33 +104,33 @@ $htmlFiles = @()
     $zip = Get-Item "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\t-p031ait_TSR20250610103420_7V7V994.zip"
 #>
 foreach ($zip in $zipFiles) {
-    Write-Host "Verarbeite ZIP-Datei: $($zip.FullName)"
-    Write-Host "Erstelle ein temporäres Verzeichnis für die Extraktion der ZIP- und HTML-Dateien..."
+    Write-Verbose "Verarbeite ZIP-Datei: $($zip.FullName)"
+    Write-Verbose "Erstelle ein temporäres Verzeichnis für die Extraktion der ZIP- und HTML-Dateien..."
     $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
     if (-not (Test-Path $baseTempDir)) {
         New-Item -ItemType Directory -Path $baseTempDir | Out-Null
     }
     $tempDir = Join-Path -Path $baseTempDir -ChildPath ([System.IO.Path]::GetRandomFileName())
     New-Item -ItemType Directory -Path $tempDir | Out-Null
-    Write-Host "Temporäres Verzeichnis erstellt: $tempDir"
+    Write-Verbose "Temporäres Verzeichnis erstellt: $tempDir"
 
-    Write-Host "Extrahiere ZIP-Datei: $($zip.FullName)"
+    Write-Verbose "Extrahiere ZIP-Datei: $($zip.FullName)"
     try {
         [System.IO.Compression.ZipFile]::ExtractToDirectory($zip.FullName, $tempDir)
 
-        Write-Host "Suche ZIP-Dateien im temporären Verzeichnis '$tempDir'..."
+        Write-Verbose "Suche ZIP-Dateien im temporären Verzeichnis '$tempDir'..."
         $SubZipFiles = Get-ChildItem -Path $tempDir -Filter "*.zip" -File
-        Write-Host "Gefundene ZIP-Dateien: $($SubZipFiles.FullName)"
+        Write-Verbose "Gefundene ZIP-Dateien: $($SubZipFiles.FullName)"
 
         foreach ($subZip in $SubZipFiles) {
-            Write-Host "Durchsuche ZIP-Datei nach HTML-Datei: $($subZip.FullName)"
+            Write-Verbose "Durchsuche ZIP-Datei nach HTML-Datei: $($subZip.FullName)"
             $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($subZip.FullName)
             foreach ($entry in $zipArchive.Entries) {
                 if ($entry.FullName -match '\.html?$') {
-                    Write-Host "  - HTML-Datei gefunden: $($entry.FullName) ($($entry.Length) Bytes)"
+                    Write-Verbose "  - HTML-Datei gefunden: $($entry.FullName) ($($entry.Length) Bytes)"
 
                     $destPath = Join-Path $tempDir $entry.Name
-                    Write-Host "    - Extrahiere $($entry.FullName) nach: $destPath"
+                    Write-Verbose "    - Extrahiere $($entry.FullName) nach: $destPath"
 
                     $entryStream = $entry.Open()
                     $fileStream  = [System.IO.File]::OpenWrite($destPath)
@@ -152,17 +152,17 @@ if (-not $htmlFiles -or $htmlFiles.Count -eq 0) {
     Write-Error "Es wurden keine HTML-Dateien in den ZIP-Archiven gefunden. Skript wird beendet."
     exit
 } else {
-    Write-Host "Insgesamt $($htmlFiles.Count) HTML-Dateien gefunden und extrahiert."
-    Write-Host "Extrahierte HTML-Dateien:"
+    Write-Verbose "Insgesamt $($htmlFiles.Count) HTML-Dateien gefunden und extrahiert."
+    Write-Verbose "Extrahierte HTML-Dateien:"
     foreach ($htmlFile in $htmlFiles) {
-        Write-Host " - $htmlFile"
+        Write-Verbose " - $htmlFile"
     }
 }
 #endregion
 
 #region Selenium
 foreach ($file in $htmlFiles) {
-    Write-Host "Verarbeite Datei: $($file)"
+    Write-Verbose "Verarbeite Datei: $($file)"
     $filePath = $file
     <# 
         $filePath = "C:\Users\michael.schoenburg\Git\ParseHtmlFileContents\viewer.html"
@@ -171,59 +171,107 @@ foreach ($file in $htmlFiles) {
 
     try {
         # Create a new instance of the Edge driver
-        $driver = Start-SeEdge
+        $driver = Start-SeEdge -Quiet
 
         # Navigate to a website
         $driver.Navigate().GoToUrl($filePath)
 
         # Modell auslesen
-        # Write-Host "Lese Modellinformationen aus..."
+        # Write-Verbose "Lese Modellinformationen aus..."
         # $Modell = $driver.FindElementByXPath("/html/body/main/div/div/router-view/div/div/div/div[1]/system-summary/article/div[3]/div/table/tbody/tr[1]/td/span").Text
-        # Write-Host "Modell: $Modell" -ForegroundColor Green
+        # Write-Verbose "Modell: $Modell" -ForegroundColor Green
 
         # Servername auslesen
-        Write-Host "Lese Servername aus..."
+        Write-Verbose "Lese Servername aus..."
         
         $driver.Navigate().GoToUrl("$($filePath)#/hardware/system-setup")
         $DnsIdracName = $driver.FindElementByXPath("//div[@class='key' and normalize-space(text())='DNS iDRAC Name']")
         $ServernameWithIdrac = $DnsIdracName.FindElementByXPath("following-sibling::*[1]").Text.Trim()
         $Servername = $ServernameWithIdrac -replace '-idrac$', ''
 
-        Write-Host "Servername: $Servername" -ForegroundColor Green
+        Write-Debug "Servername: $Servername"
 
         # iDrac-MAC-Adresse auslesen
-        Write-Host "Lese iDrac-MAC-Adresse aus..."
+        Write-Verbose "Lese iDrac-MAC-Adresse aus..."
 
         $driver.Navigate().GoToUrl("$($filePath)#/hardware/systemboard")
         $macAddressHeader = $driver.FindElementByXPath("//th[normalize-space(text())='MAC Address']")
         $IdracMacAddress = $macAddressHeader.FindElementByXPath("following-sibling::td[1]").Text.Trim()
-        Write-Host "iDrac-MAC-Adresse: $IdracMacAddress" -ForegroundColor Green
+        Write-Debug "iDrac-MAC-Adresse: $IdracMacAddress"
 
         # Tabelle mit MAC-Adressen auslesen
-        Write-Host "Lese alle MAC-Adressen aus..."
+        Write-Verbose "Lese alle MAC-Adressen aus..."
 
         # Klicke auf den Navigationspunkt "Ethernet"
+        Write-Verbose "Navigiere zur Ethernet-Seite..."
         $driver.Navigate().GoToUrl("$($filePath)#/hardware/ethernet")
 
         # Warte, bis die Seite vollständig geladen ist
-        # Warte, bis das Element <td>AutoNegotiation</td> geladen wurde (Timeout: 30 Sekunden)
-        $null = Find-SeElement -driver $driver -By XPath "//td[normalize-space(text())='AutoNegotiation']" -Timeout 6
+        Write-Verbose "Warte auf das Laden der Ethernet-Seite..."
+        $driver.Manage().Timeouts().ImplicitWait = [System.TimeSpan]::FromSeconds(0)
+        $wait = New-Object OpenQA.Selenium.Support.UI.WebDriverWait($driver, [System.TimeSpan]::FromSeconds(6))
+        try {
+            $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//td[normalize-space(text())='AutoNegotiation']")))
+            $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//h2[@class='ui left header' and contains(text(),'Part Information')]")))
+            $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//tbody/tr/td[normalize-space(text())='AutoNegotiation']")))
+        } catch {
+            throw "Timeout: Das erforderliche Element auf der Ethernet-Seite konnte nicht gefunden werden. Die Webseite wurde wohl nicht vollständig geladen. Skript wird abgebrochen."
+        }
 
         # Die erste Tabelle auf der Seite finden
+        Write-Verbose "Suche die erste Tabelle auf der Seite..."
         $table = $driver.FindElementByXPath("(//table)[1]")
+        Write-Debug "Tabelle gefunden: $($table.Text)"
 
         # Alle Zeilen (tr) holen
+        Write-Verbose "Extrahiere Zeilen aus der Tabelle..."
         $rows = $table.FindElements([OpenQA.Selenium.By]::TagName("tr"))
+        Write-Debug "Zeilen gefunden: $($rows.Text)"
 
         # Die Header-Zeile extrahieren
-        $headers = $rows[0].FindElements([OpenQA.Selenium.By]::TagName("th")) | ForEach-Object { $_.Text.Trim() }
+        Write-Verbose "Extrahiere Header-Zeile..."
+        Write-Debug "Versuche, die Header-Zeile zu extrahieren..."
+        $headerRow = $rows[0]
+        if ($null -eq $headerRow) {
+            Write-Debug "Header-Zeile (rows[0]) ist $null!"
+        } else {
+            Write-Debug "Header-Zeile gefunden: $($headerRow.Text)"
+        }
+
+        $headerElements = $headerRow.FindElements([OpenQA.Selenium.By]::TagName("th"))
+        if ($null -eq $headerElements -or $headerElements.Count -eq 0) {
+            Write-Debug "Keine <th>-Elemente in der Header-Zeile gefunden!"
+        } else {
+            Write-Debug "Gefundene <th>-Elemente: $($headerElements.Count)"
+            foreach ($el in $headerElements) {
+            Write-Debug "Header-Element: $($el.Text)"
+            }
+        }
+
+        $headers = @()
+        foreach ($el in $headerElements) {
+            $headerText = $el.Text
+            if ($null -eq $headerText -or $headerText.Trim() -eq "") {
+                throw "Fehler: Eine Header-Zeile konnte nicht korrekt ausgelesen werden (leer oder null). Das Skript wird abgebrochen."
+            } else {
+                $headerText = $headerText.Trim()
+            }
+            Write-Debug "Header-Text extrahiert: '$headerText'"
+            $headers += $headerText
+        }
+        Write-Debug "Finale Header-Liste: $($headers -join ', ')"
 
         # Die Datenzeilen extrahieren
+        Write-Verbose "Extrahiere Datenzeilen..."
         $dataRows = $rows | Select-Object -Skip 1
+        Write-Debug "Datenzeilen gefunden: $($dataRows.Text)"
 
         # Jede Datenzeile in ein PSCustomObject umwandeln
+        Write-Verbose "Wandle Datenzeilen in PSCustomObject..."
+
         $Nics = foreach ($row in $dataRows) {
             $cells = $row.FindElements([OpenQA.Selenium.By]::TagName("td"))
+            Write-Debug "Zellen gefunden: $($cells.Text)"
             if ($cells.Count -eq $headers.Count) {
                 $obj = [PSCustomObject]@{}
                 for ($i = 0; $i -lt $headers.Count; $i++) {
@@ -234,33 +282,60 @@ foreach ($file in $htmlFiles) {
         }
 
         # Ausgabe prüfen
-        $Nics | Format-Table -AutoSize
+        Write-Verbose "Extrahierte Daten aus der Tabelle:"
+        $($Nics | Format-Table -AutoSize | Out-String) | Write-Verbose})
 
         #endregion
 
         #region Excel
 
         # Ausgabe in Excel eintragen
-        Write-Host "Trage Daten in Excel ein..."
+        Write-Verbose "Trage Daten in Excel ein..."
 
         # Excel-Objekt erstellen und Datei öffnen
+        Write-Verbose "Erstelle Excel-Objekt..."
         $excel = New-Object -ComObject Excel.Application
         $excel.Visible = $true
-        $workbook = $excel.Workbooks.Open($PathToExcelFile)
+        # Hole den absoluten Pfad und Dateinamen aus $PathToExcelFile
+        Write-Verbose "Löse Pfad zur Excel-Datei auf: $PathToExcelFile"
+        $excelFullPath = Resolve-Path -Path $PathToExcelFile | Select-Object -ExpandProperty Path
+        Write-Debug "Excel-Dateipfad aufgelöst: $excelFullPath"
+        $excelFileName = [System.IO.Path]::GetFileName($excelFullPath)
+        Write-Debug "Excel-Dateiname extrahiert: $excelFileName"
+        Write-Verbose "Öffne Excel-Datei: $excelFullPath"
+        $workbook = $excel.Workbooks.Open($excelFullPath)
+        Write-Verbose "Arbeitsblatt 10 auswählen..."
         $worksheet = $workbook.Worksheets.Item(10)
 
-        # Optional: Überschriften in Zeile 1 schreiben
-        for ($i = 0; $i -lt $headers.Count; $i++) {
-            $worksheet.Cells.Item(1, $i + 1).Value2 = $headers[$i]
-        }
-
         $lastRow = $worksheet.UsedRange.Rows.Count
+        $ServerRow = $null
         for ($i = 3; $i -le $lastRow; $i++) {
             $cellValue = $worksheet.Cells.Item($i, 3).Value2
             if ($cellValue -eq $Servername) {
-                Write-Host "Servername gefunden in Zeile $i" -ForegroundColor Green
+                Write-Verbose "Servername gefunden in Zeile $i"
                 $ServerRow = $i
                 break
+            }
+        }
+        if (-not $ServerRow) {
+            # Suche die nächste komplett leere Zeile ab Zeile 3
+            for ($i = 3; $i -le ($lastRow + 10); $i++) {
+            $rowIsEmpty = $true
+            for ($col = 1; $col -le $worksheet.UsedRange.Columns.Count; $col++) {
+                if ($worksheet.Cells.Item($i, $col).Value2) {
+                    $rowIsEmpty = $false
+                    break
+                }
+            }
+            if ($rowIsEmpty) {
+                $ServerRow = $i
+                $worksheet.Cells.Item($ServerRow, 3).Value2 = $Servername
+                Write-Verbose "Servername '$Servername' in neue Zeile $ServerRow eingetragen."
+                break
+            }
+            }
+            if (-not $ServerRow) {
+                throw "Keine freie Zeile gefunden, um den Servernamen '$Servername' einzutragen."
             }
         }
 
@@ -289,20 +364,20 @@ foreach ($file in $htmlFiles) {
         }
 
         # Speichern der Excel-Datei
-        Write-Host "Speichere Excel-Datei..."
+        Write-Verbose "Speichere Excel-Datei..."
         $workbook.Save()
     } catch {
         Write-Error "  Fehler beim Verarbeiten der Datei '$($fileName)': $($_.Exception.Message)"
         # Fährt fort mit der nächsten Datei, auch wenn ein Fehler auftritt
     } finally {
         # Excel schließen
-        Write-Host "Schließe Excel..."
+        Write-Verbose "Schließe Excel..."
         $workbook.Close()
         $excel.Quit()
         [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
 
         # Browser schließen (optional)
-        Write-Host "Schließe Browser..."
+        Write-Verbose "Schließe Browser..."
         $driver.Quit()
     }
 }
@@ -310,27 +385,27 @@ foreach ($file in $htmlFiles) {
 
 #region Export zur CSV-Datei
 if ($allMacAddresses.Count -gt 0) {
-    Write-Host "Alle MAC-Adressen wurden gesammelt. Exportiere nach '$outputCsvPath'..."
+    Write-Verbose "Alle MAC-Adressen wurden gesammelt. Exportiere nach '$outputCsvPath'..."
     $allMacAddresses | Export-Csv -Path $outputCsvPath -NoTypeInformation -Encoding UTF8
 
-    Write-Host "Erfolgreich aggregierte MAC-Adressen in '$outputCsvPath' gespeichert."
-    Write-Host "Anzahl der gefundenen Einträge: $($allMacAddresses.Count)"
+    Write-Verbose "Erfolgreich aggregierte MAC-Adressen in '$outputCsvPath' gespeichert."
+    Write-Verbose "Anzahl der gefundenen Einträge: $($allMacAddresses.Count)"
 } else {
     Write-Warning "Keine MAC-Adressen in den verarbeiteten Dateien gefunden. Es wurde keine CSV-Datei erstellt."
 }
 #endregion
 
 #region Aufräumen
-Write-Host "Bereinige temporäre Dateien und Ordner..."
+Write-Verbose "Bereinige temporäre Dateien und Ordner..."
 
 # Lösche die temporär angelegten Ordner inkl. Dateien darin
 try {
     Remove-Item -Path $baseTempDir -Recurse -Force -ErrorAction Stop
-    Write-Host "Temporärer Ordner gelöscht: $baseTempDir"
+    Write-Verbose "Temporärer Ordner gelöscht: $baseTempDir"
 } catch {
     Write-Warning "Konnte temporären Ordner '$baseTempDir' nicht löschen: $($_.Exception.Message)"
 }
 
 #endregion
 
-Write-Host "Skriptausführung abgeschlossen."
+Write-Verbose "Skriptausführung abgeschlossen."
