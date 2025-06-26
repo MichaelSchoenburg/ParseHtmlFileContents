@@ -435,18 +435,6 @@ foreach ($file in $htmlFiles) {
 }
 #endregion
 
-#region Export zur CSV-Datei
-if ($allMacAddresses.Count -gt 0) {
-    Write-Verbose "Alle MAC-Adressen wurden gesammelt. Exportiere nach '$outputCsvPath'..."
-    $allMacAddresses | Export-Csv -Path $outputCsvPath -NoTypeInformation -Encoding UTF8
-
-    Write-Verbose "Erfolgreich aggregierte MAC-Adressen in '$outputCsvPath' gespeichert."
-    Write-Verbose "Anzahl der gefundenen Einträge: $($allMacAddresses.Count)"
-} else {
-    Write-Warning "Keine MAC-Adressen in den verarbeiteten Dateien gefunden. Es wurde keine CSV-Datei erstellt."
-}
-#endregion
-
 #region Aufräumen
 Write-Verbose "Bereinige temporäre Dateien und Ordner..."
 
