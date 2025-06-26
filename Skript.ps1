@@ -319,7 +319,7 @@ foreach ($file in $htmlFiles) {
         # Excel-Objekt erstellen und Datei öffnen
         Write-Verbose "Erstelle Excel-Objekt..."
         $excel = New-Object -ComObject Excel.Application
-        $excel.Visible = $true
+        $excel.Visible = $false
         # Hole den absoluten Pfad und Dateinamen aus $PathToExcelFile
         Write-Verbose "Löse Pfad zur Excel-Datei auf: $PathToExcelFile"
         $excelFullPath = Resolve-Path -Path $PathToExcelFile | Select-Object -ExpandProperty Path
