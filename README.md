@@ -120,5 +120,8 @@ Wurzelordner
 
 ## Fehler & Support
 
-- Bei Änderungswünschen oder Fehlern bitte ein [Issue](https://github.com/MichaelSchoenburg/ParseHtmlFileContents/issues) im Repository eröffnen.
-- Für Fragen oder Hilfestellung gerne ebenfalls ein Issue erstellen.
+Bei Fragen, Problemen oder Fehlern könnt ihr euch gerne melden:
+
+- **Issues**: Bei Fehlern oder Verbesserungsvorschlägen, erstellt bitte ein Issue im Repository.
+- **Pull Requests**: Für Code-Änderungen, reicht bitte einen Pull Request ein.
+- **Dokumentation**: Prüft bitte zuerst die README und bestehende Issues, bevor ihr ein neues Anliegen erstellt.
