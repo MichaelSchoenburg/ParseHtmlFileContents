@@ -183,13 +183,21 @@ foreach ($file in $htmlFiles) {
 
         # Servername auslesen
         Write-Verbose "Lese Servername aus..."
-        
-        $driver.Navigate().GoToUrl("$($filePath)#/hardware/system-setup")
-        $DnsIdracName = $driver.FindElementByXPath("//div[@class='key' and normalize-space(text())='DNS iDRAC Name']")
-        $ServernameWithIdrac = $DnsIdracName.FindElementByXPath("following-sibling::*[1]").Text.Trim()
-        $Servername = $ServernameWithIdrac -replace '-idrac$', ''
 
-        Write-Debug "Servername: $Servername"
+        try {
+            $driver.Navigate().GoToUrl("$($filePath)#/hardware/system-setup")
+            $DnsIdracName = $driver.FindElementByXPath("//div[@class='key' and normalize-space(text())='DNS iDRAC Name']")
+            $ServernameWithIdrac = $DnsIdracName.FindElementByXPath("following-sibling::*[1]").Text.Trim()
+            $Servername = $ServernameWithIdrac -replace '-idrac$', ''
+            if ([string]::IsNullOrWhiteSpace($Servername)) {
+                throw "Servername konnte nicht ausgelesen werden oder ist leer."
+            } else {
+                Write-Debug "Servername: $Servername"
+            }
+        } catch {
+            Write-Error "Fehler beim Auslesen des Servernamens für Datei '$fileName': $($_.Exception.Message). Das Skript wird trotzdem weiter ausgeführt. Es kommt zu keinen Folgefehlern." -ErrorAction Continue
+            $Servername = "Fehler"
+        }
 
         # iDrac-MAC-Adresse auslesen
         Write-Verbose "Lese iDrac-MAC-Adresse aus..."
