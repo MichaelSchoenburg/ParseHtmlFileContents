@@ -42,30 +42,29 @@ Dieses PowerShell-Skript automatisiert das Extrahieren und Aggregieren von MAC-A
 2. **Skript ausführen**  
    Öffne eine PowerShell-Konsole und führe das Skript mit den gewünschten Parametern aus.
 
-   ### Syntax
+   Syntax:
 
    ```powershell
    .\Skript.ps1 -ZipFilesDirectory "C:\Pfad\zu\deinen\ZIPs" -PathToExcelFile "C:\Pfad\zur\Exceldatei.xlsx" -Verbose
    ```
 
-   ### Beispielaufruf (vollständige Pfade)
+   Beispielaufruf (vollständige Pfade):
 
    ```powershell
    .\Skript.ps1 -ZipFilesDirectory "C:\Daten\Zips" -PathToExcelFile "C:\Daten\Netzwerkdaten.xlsx"
    ```
 
-   ### Beispielaufruf (relative Pfade)
+   Beispielaufruf (relative Pfade):
 
    ```powershell
    .\Skript.ps1 -ZipFilesDirectory ".\Zips" -PathToExcelFile ".\Netzwerkdaten.xlsx"
    ```
 
-   ### Beispielaufruf (mit Detailinformationen)
+   Beispielaufruf (mit Detailinformationen):
 
    ```powershell
    .\Skript.ps1 -ZipFilesDirectory ".\Zips" -PathToExcelFile ".\Netzwerkdaten.xlsx" -Verbose
    ```
-   ### Tipps
 
    > **Anforderungen:**
    > - Die Excel-Datei muss bereits existieren.
@@ -76,6 +75,13 @@ Dieses PowerShell-Skript automatisiert das Extrahieren und Aggregieren von MAC-A
    > 
    > ```powershell
    > powershell.exe -ExecutionPolicy Bypass -File .\Skript.ps1 -ZipFilesDirectory "C:\Pfad\zu\deinen\ZIPs" -PathToExcelFile "C:\Pfad\zur\Exceldatei.xlsx"
+   > ```
+   >
+   > Alternativ kann die Richtlinie für die aktuelle PowerShell-Sitzung temporär geändert und das Skript danach ganz normal aufgerufen werden:
+   >
+   > ```powershell
+   > Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   > .\Skript.ps1 -ZipFilesDirectory "C:\Pfad\zu\deinen\ZIPs" -PathToExcelFile "C:\Pfad\zur\Exceldatei.xlsx"
    > ```
 
 ## Parameter
@@ -91,7 +97,7 @@ Dieses PowerShell-Skript automatisiert das Extrahieren und Aggregieren von MAC-A
 - **`-Verbose`**: Zeigt detaillierte Statusmeldungen während der Ausführung an (z.B. welche Datei gerade verarbeitet wird).
 - **`-Debug`**: Zeigt noch detailliertere Informationen, z.B. den Inhalt von Variablen und Zwischenschritten.
 
-**Beispiel für Verbose und Debug:**
+Beispiel für Verbose und Debug:
 ```powershell
 .\Skript.ps1 -ZipFilesDirectory "C:\Daten\Zips" -PathToExcelFile "C:\Daten\Netzwerkdaten.xlsx" -Verbose -Debug
 ```
