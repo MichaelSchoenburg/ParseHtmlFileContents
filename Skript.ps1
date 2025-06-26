@@ -218,6 +218,12 @@ foreach ($file in $htmlFiles) {
             throw "Timeout: Das erforderliche Element auf der Ethernet-Seite konnte nicht gefunden werden. Die Webseite wurde wohl nicht vollständig geladen. Skript wird abgebrochen."
         }
 
+        # Stelle sicher, dass die Spalte 'Firmware' sichtbar ist
+        $firmwareHeader = $driver.FindElementByXPath("//th[normalize-space(text())='Firmware']")
+        if (-not $firmwareHeader.Displayed) {
+            throw "Fehler: Die Spalte 'Firmware' ist nicht sichtbar! Tipp: maximiere die Webseite im Browser, um alle Spalten anzuzeigen. Das Skript wird abgebrochen."
+        }
+
         # Die erste Tabelle auf der Seite finden
         Write-Verbose "Suche die erste Tabelle auf der Seite..."
         $table = $driver.FindElementByXPath("(//table)[1]")
