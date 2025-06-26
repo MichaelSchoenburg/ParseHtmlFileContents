@@ -171,7 +171,7 @@ foreach ($file in $htmlFiles) {
 
     try {
         # Create a new instance of the Edge driver
-        $driver = Start-SeEdge -Quiet
+        $driver = Start-SeEdge -Quiet -Maximized
 
         # Navigate to a website
         $driver.Navigate().GoToUrl($filePath)
@@ -219,6 +219,7 @@ foreach ($file in $htmlFiles) {
         }
 
         # Stelle sicher, dass die Spalte 'Firmware' sichtbar ist
+        Write-Verbose "Überprüfe, ob die Spalte 'Firmware' sichtbar ist..."
         $firmwareHeader = $driver.FindElementByXPath("//th[normalize-space(text())='Firmware']")
         if (-not $firmwareHeader.Displayed) {
             throw "Fehler: Die Spalte 'Firmware' ist nicht sichtbar! Tipp: maximiere die Webseite im Browser, um alle Spalten anzuzeigen. Das Skript wird abgebrochen."
@@ -291,6 +292,23 @@ foreach ($file in $htmlFiles) {
         Write-Verbose "Extrahierte Daten aus der Tabelle:"
         $Nics | Format-Table -AutoSize | Out-String | Write-Verbose
 
+        # Extrahiere die Port-Geschwindigkeit aus der Spalte "Model" per Regex und schreibe sie in eine neue Spalte "PortSpeed"
+        Write-Verbose "Extrahiere Port-Geschwindigkeit aus der Spalte 'Model' in die neue Spalte 'PortSpeed'..."
+        foreach ($nic in $Nics) {
+            $model = $nic.Model
+            if ($model -match ' \dx(100G) ') {
+                $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue '100 G QSFP' -Force
+            } elseif ($model -match ' \dx(10G|25G) ') {
+                $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue '10/25 GbE SFP' -Force
+            } else {
+                $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue $null -Force
+            }
+        }
+
+        # Ausgabe prüfen
+        Write-Verbose "Gemappte Tabelle:"
+        $Nics | Format-Table -AutoSize | Out-String | Write-Verbose
+
         #endregion
 
         #region Excel
@@ -359,14 +377,24 @@ foreach ($file in $htmlFiles) {
         $FirmwarePort2MacAddress = $Nics.Where({ $_.Location -eq "Embedded 2, Port 1" })."MAC Address"
         $worksheet.Cells.Item($ServerRow, 9).Value2 = $FirmwarePort2MacAddress
 
-        # Netzwerkkarten
-        $NicsSelected = $Nics.Where({ ($_.Location -like "*Slot*") -or ($_.Location -like "*Integrated*") })
+        # Netzwerkkarten 100 G QSFP
+        $Nics100G = $Nics.Where({ ($_.Location -like "*Slot*") -or ($_.Location -like "*Integrated*") -and ($_.PortSpeed -eq "100 G QSFP") })
         $j = 0
-        foreach ($nic in $NicsSelected) {
+        foreach ($nic in $Nics100G) {
             $worksheet.Cells.Item($ServerRow, 10 + $j).Value2 = $nic.Location
             $j += 1
             $worksheet.Cells.Item($ServerRow, 10 + $j).Value2 = $nic."MAC Address"
             $j += 1
+        }
+
+        # Netzwerkkarten 10/25 GbE SFP
+        $Nics1025G = $Nics.Where({ ($_.Location -like "*Slot*") -or ($_.Location -like "*Integrated*") -and ($_.PortSpeed -eq "10/25 GbE SFP") })
+        $n = 0
+        foreach ($nic in $Nics1025G) {
+            $worksheet.Cells.Item($ServerRow, 26 + $n).Value2 = $nic.Location
+            $n += 1
+            $worksheet.Cells.Item($ServerRow, 26 + $n).Value2 = $nic."MAC Address"
+            $n += 1
         }
 
         # Speichern der Excel-Datei
