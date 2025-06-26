@@ -207,8 +207,7 @@ foreach ($file in $htmlFiles) {
         $driver.Navigate().GoToUrl("$($filePath)#/hardware/ethernet")
 
         # Warte, bis die Seite vollständig geladen ist
-        Write-Verbose "Warte 2 Sekunden auf das Laden der Ethernet-Seite..."
-        Start-Sleep -Seconds 2
+        Write-Verbose "Warte auf das Laden der Ethernet-Seite..."
         $wait = New-Object OpenQA.Selenium.Support.UI.WebDriverWait($driver, [System.TimeSpan]::FromSeconds(6))
         try {
             $null = $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::XPath("//td[normalize-space(text())='AutoNegotiation']")))
