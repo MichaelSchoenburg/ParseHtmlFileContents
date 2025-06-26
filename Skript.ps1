@@ -362,19 +362,19 @@ foreach ($file in $htmlFiles) {
         if (-not $ServerRow) {
             # Suche die nächste komplett leere Zeile ab Zeile 3
             for ($i = 3; $i -le ($lastRow + 10); $i++) {
-            $rowIsEmpty = $true
-            for ($col = 1; $col -le $worksheet.UsedRange.Columns.Count; $col++) {
-                if ($worksheet.Cells.Item($i, $col).Value2) {
-                    $rowIsEmpty = $false
+                $rowIsEmpty = $true
+                for ($col = 1; $col -le $worksheet.UsedRange.Columns.Count; $col++) {
+                    if ($worksheet.Cells.Item($i, $col).Value2) {
+                        $rowIsEmpty = $false
+                        break
+                    }
+                }
+                if ($rowIsEmpty) {
+                    $ServerRow = $i
+                    $worksheet.Cells.Item($ServerRow, 3).Value2 = $Servername
+                    Write-Verbose "Servername '$Servername' in neue Zeile $ServerRow eingetragen."
                     break
                 }
-            }
-            if ($rowIsEmpty) {
-                $ServerRow = $i
-                $worksheet.Cells.Item($ServerRow, 3).Value2 = $Servername
-                Write-Verbose "Servername '$Servername' in neue Zeile $ServerRow eingetragen."
-                break
-            }
             }
             if (-not $ServerRow) {
                 throw "Keine freie Zeile gefunden, um den Servernamen '$Servername' einzutragen."
