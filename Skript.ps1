@@ -224,6 +224,13 @@ function Invoke-Sleep {
 
 #endregion
 
+#region Variablen
+
+$baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
+$LogFilePath = "$($PathToLogDirectory)\ParseHtmlFileContents-$(Get-Date -Format "dd.MM.yyyy-HH.mm.ss").log"
+
+#endregion
+
 #region Transkript
 
 if ($Silent) {
@@ -256,13 +263,6 @@ if (-not (Get-Module -Name Selenium)) {
 } else {
     Log "PowerShell-Modul 'Selenium' ist bereits geladen."
 }
-
-#endregion
-
-#region Variablen
-
-$baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
-$LogFilePath = "$($PathToLogDirectory)\ParseHtmlFileContents-$(Get-Date -Format "dd.MM.yyyy-HH.mm.ss").log"
 
 #endregion
 
