@@ -234,7 +234,7 @@ $LogFilePath = "$($PathToLogDirectory)\ParseHtmlFileContents-$(Get-Date -Format 
 #region Transkript
 
 if ($Silent) {
-    $null = New-Item -Path $LogFilePath -ItemType File -Force
+    $null = New-Item -Path $LogFilePath -ItemType File
 } else {
     Start-Transcript -Path $LogFilePath
 }
@@ -251,7 +251,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Log "Pruefe, ob das Selenium-Modul installiert ist..."
 if (-not (Get-Module -ListAvailable -Name Selenium)) {
     Log "PowerShell-Modul 'Selenium' wird installiert..."
-    Install-Module -Name Selenium -Scope CurrentUser -Force
+    Install-Module -Name Selenium -Scope CurrentUser
 } else {
     Log "PowerShell-Modul 'Selenium' ist bereits installiert."
 }
@@ -285,7 +285,7 @@ try {
     $zipFiles = Get-ChildItem -Path $ZipFilesDirectory -Filter "*.zip" -File -Recurse
     Log "Gefundene ZIP-Dateien: $($zipFiles.Count)"
     
-    $htmlFiles = @()
+    $htmlFiles = New-Object System.Collections.Generic.List[object]
     $n = 0
 
     foreach ($zip in $zipFiles) {
@@ -325,7 +325,7 @@ try {
                         $fileStream.Close()
                         $entryStream.Close()
 
-                        $htmlFiles += $destPath
+                        $htmlFiles.Add($destPath)
                     }
                 }
                 $zipArchive.Dispose()
@@ -539,7 +539,7 @@ try {
                 }
             }
 
-            $headers = @()
+            $headers = New-Object System.Collections.Generic.List[object]
             foreach ($el in $headerElements) {
                 $headerText = $el.Text
                 if ($null -eq $headerText -or $headerText.Trim() -eq "") {
@@ -548,7 +548,7 @@ try {
                     $headerText = $headerText.Trim()
                 }
                 Log "Header-Text extrahiert: '$headerText'"
-                $headers += $headerText
+                $headers.Add($headerText)
             }
             Log "Finale Header-Liste: $($headers -join ', ')"
 
@@ -583,11 +583,11 @@ try {
             foreach ($nic in $Nics) {
                 $model = $nic.Model
                 if ($model -match ' \dx(100G) ') {
-                    $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue '100 G QSFP' -Force
+                    $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue '100 G QSFP'
                 } elseif ($model -match ' \dx(10G|25G) ') {
-                    $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue '10/25 GbE SFP' -Force
+                    $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue '10/25 GbE SFP'
                 } else {
-                    $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue $null -Force
+                    $nic | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue $null
                 }
             }
 
@@ -681,14 +681,14 @@ try {
                         if (-not $headerElements -or $headerElements.Count -eq 0) {
                         throw "Keine Header (<th>) in der Tabelle gefunden."
                         }
-                        $headers = @()
+                        $headers = New-Object System.Collections.Generic.List[object]
                         foreach ($el in $headerElements) {
                         $headerText = $el.Text
                         if ($null -eq $headerText -or $headerText.Trim() -eq "") {
                             Write-Warning "Leerer Header-Text gefunden, wird uebersprungen."
                             continue
                         }
-                        $headers += $headerText.Trim()
+                        $headers.Add($headerText.Trim())
                         }
                         if ($headers.Count -eq 0) {
                         throw "Alle Header-Zellen sind leer. Tabelle ungueltig."
@@ -704,7 +704,7 @@ try {
                         if (-not $rowElements -or $rowElements.Count -eq 0) {
                         throw "Keine Datenzeilen (<tr>) in der Tabelle gefunden."
                         }
-                        $TableObjects = @()
+                        $TableObjects = New-Object System.Collections.Generic.List[object]
                         foreach ($row in $rowElements) {
                         $cellElements = $row.FindElements([OpenQA.Selenium.By]::TagName("td"))
                         if ($cellElements.Count -ne $headers.Count) {
@@ -716,9 +716,9 @@ try {
                             $cellValue = $cellElements[$i].Text
                             if ($null -eq $cellValue) { $cellValue = "" }
                             $obj | Add-Member -NotePropertyName $headers[$i] -NotePropertyValue $cellValue.Trim()
-                            $obj | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue 'InfiniBand' -Force
+                            $obj | Add-Member -NotePropertyName "PortSpeed" -NotePropertyValue 'InfiniBand'
                         }
-                        $TableObjects += $obj
+                        $TableObjects.Add($obj)
                         }
                         if ($TableObjects.Count -eq 0) {
                         throw "Keine gueltigen Datenzeilen extrahiert."
@@ -732,7 +732,7 @@ try {
                     Log "Tabelle erfolgreich als PSCustomObject(s) extrahiert. Anzahl Zeilen: $($TableObjects.Count)"
 
                     # Fuege die InfiniBand-NICs zu den Ethernet-NICs hinzu
-                    $Nics += $TableObjects
+                    $Nics.Add($TableObjects)
 
                     # Ausgabe pruefen
                     Log "Tabelle inkl. PortSpeed und InfiniBand:"
@@ -851,7 +851,7 @@ try {
                     # Hole alle <tbody>-Elemente der Tabelle
                     $tbodyElements = $tableElement.FindElements([OpenQA.Selenium.By]::TagName("tbody"))
 
-                    $PhysicalDisks = @()
+                    $PhysicalDisks = New-Object System.Collections.Generic.List[object]
 
                     foreach ($tbody in $tbodyElements) {
                         # Versuche den Storage Controller Namen aus dem ersten <tr> mit <div class='ui ribbon label'> zu extrahieren
@@ -889,7 +889,7 @@ try {
                                     "Serial"            = $cells[7].Text.Trim()
                                     "SAS Address"       = $cells[8].Text.Trim()
                                 }
-                                $PhysicalDisks += $obj
+                                $PhysicalDisks.Add($obj)
                             } catch {
                                 Log "Fehler beim Verarbeiten einer Datenzeile: $($_.Exception.Message)"
                                 continue
@@ -1097,7 +1097,7 @@ try {
     # Loesche die temporaer angelegten Ordner inkl. Dateien darin
     Log "Bereinige temporaere Dateien und Ordner..."
     try {
-        Remove-Item -Path $baseTempDir -Recurse -Force -ErrorAction Stop
+        Remove-Item -Path $baseTempDir -Recurse -ErrorAction Stop
         Log "Temporaerer Ordner geloescht: $baseTempDir"
     } catch {
         Write-Warning "Konnte temporaeren Ordner '$baseTempDir' nicht loeschen: $($_.Exception.Message)"
