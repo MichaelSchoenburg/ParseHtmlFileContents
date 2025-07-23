@@ -49,7 +49,10 @@ Dieses PowerShell-Skript automatisiert das Extrahieren und Aggregieren von Daten
 3. **Skript herunterladen**  
    Lade die Datei `Skript.ps1` aus diesem Repository herunter und speichere sie auf deinem Rechner.
 
-4. **Skript ausführen**  
+4. **TSR-Logs extrahieren**
+   Der Ordner 03_TSRLogs muss extrahiert werden. Die einzelnen Server-Logs darunter, müssen nicht extrahiert werden.
+
+5. **Skript ausführen**  
    Öffne eine PowerShell-Konsole und führe das Skript mit den gewünschten Parametern aus.
 
    Syntax:

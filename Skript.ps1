@@ -70,7 +70,7 @@ param(
     [string]
     $PathToExcelFile,
 
-    # Pfad zur Excel-Datei
+    # Pfad zum Chrome Web Driver
     [Parameter(
         Mandatory = $false,
         HelpMessage = "Dies ist der Pfad zum Ordner, in welchem der Chrome Web Driver (muss 'chromedriver.exe' heißen) liegt."
@@ -87,11 +87,11 @@ param(
     })]
     [string]
     $PathToWebDriverDirectory,
-
-    # Pfad fuer die Log-Datei
+    
+    # Pfad zur Chrome.exe
     [Parameter(
         Mandatory = $false,
-        HelpMessage = "Dies ist der Pfad zur Log-Datei."
+        HelpMessage = "Dies ist der Pfad zur Chrome.exe, falls eine andere Version genutzt werden soll, als die installierte Chrome-Standard-Version."
     )]
     [ValidateNotNullOrEmpty()]
     [ValidateScript({
@@ -104,7 +104,25 @@ param(
         return $true
     })]
     [string]
-    $LogFilePath = "$($PSScriptRoot)\ParseHtmlFileContents-$(Get-Date -Format "dd.MM.yyyy-HH.mm.ss").log",
+    $PathToChromeBinary,
+
+    # Pfad fuer die Log-Datei
+    [Parameter(
+        Mandatory = $false,
+        HelpMessage = "Dies ist der Pfad zur Log-Datei."
+    )]
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if (-not ($_ -is [string] -and $_.Trim().Length -gt 0)) {
+            throw "Der Pfad darf nicht leer sein."
+        }
+        if (-not (Test-Path $_ -PathType Container)) {
+            throw "Der angegebene Pfad '$_' existiert nicht oder ist kein Verzeichnis."
+        }
+        return $true
+    })]
+    [string]
+    $PathToLogDirectory = $PSScriptRoot,
 
     # Silent-Mode
     [Parameter(
@@ -244,6 +262,7 @@ if (-not (Get-Module -Name Selenium)) {
 #region Variablen
 
 $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
+$LogFilePath = "$($PathToLogDirectory)\ParseHtmlFileContents-$(Get-Date -Format "dd.MM.yyyy-HH.mm.ss").log"
 
 #endregion
 
@@ -352,19 +371,25 @@ try {
 
     # Create a new instance of the Chrome driver
     Log "Initialisiere Webbrowser..."
-    if ($Silent) {
-        if ($PathToWebDriverDirectory) {
-            $driver = Start-SeChrome -Headless -Quiet -Arguments "--window-size=1920,1080" -WebDriverDirectory $PathToWebDriverDirectory
-        } else {
-            $driver = Start-SeChrome -Headless -Quiet -Arguments "--window-size=1920,1080"
-        }
-    } else {
-        if ($PathToWebDriverDirectory) {
-            $driver = Start-SeChrome -Quiet -Arguments @('start-maximized') -WebDriverDirectory $PathToWebDriverDirectory
-        } else {
-            $driver = Start-SeChrome -Quiet -Arguments @('start-maximized')
-        }
+
+    # Baue Splatting-Hashtable für Start-SeChrome
+    $chromeSplat = @{
+        Quiet = $true
     }
+    if ($Silent) {
+        $chromeSplat.Headless = $true
+        $chromeSplat.Arguments = "--window-size=1920,1080"
+    } else {
+        $chromeSplat.Arguments = @('start-maximized')
+    }
+    if ($PathToWebDriverDirectory) {
+        $chromeSplat.WebDriverDirectory = $PathToWebDriverDirectory
+    }
+    if ($PathToChromeBinary) {
+        $chromeSplat.BinaryPath = $PathToChromeBinary
+    }
+
+    $driver = Start-SeChrome @chromeSplat
 
     # Timeout fuer FindElements auf 3 Sekunden setzen
     $Seconds = 2
