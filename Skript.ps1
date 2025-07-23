@@ -226,8 +226,14 @@ function Invoke-Sleep {
 
 #region Variablen
 
+# Ordner, in welchem die Extrahierten ZIP-Dateien und viewer.html-Dateien gespeichert werden
 $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
+
+# Ordner, in welchem die Log-Datei erstellt wird
 $LogFilePath = "$($PathToLogDirectory)\ParseHtmlFileContents-$(Get-Date -Format "dd.MM.yyyy-HH.mm.ss").log"
+
+# Timout in Sekunden (z. B. für das Suchen von Elementen per Selenium)
+$Seconds = 3
 
 #endregion
 
@@ -392,7 +398,6 @@ try {
     $driver = Start-SeChrome @chromeSplat
 
     # Timeout fuer FindElements auf 3 Sekunden setzen
-    $Seconds = 2
     $driver.Manage().Timeouts().ImplicitWait = [System.TimeSpan]::FromSeconds($Seconds)
     $driver.Manage().Timeouts().PageLoad = [System.TimeSpan]::FromSeconds($Seconds)
     $driver.Manage().Timeouts().AsynchronousJavaScript = [System.TimeSpan]::FromSeconds($Seconds)
