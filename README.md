@@ -15,31 +15,41 @@
 
 ## Übersicht
 
-Dieses PowerShell-Skript automatisiert das Extrahieren und Aggregieren von MAC-Adressen sowie weiterer Netzwerkdaten aus HTML-Dateien, die sich in ZIP-Archiven befinden. Die HTML-Dateien werden entpackt, mit Selenium im Edge-Browser analysiert und die gewünschten Daten anschließend in eine bestehende Excel-Datei eingetragen. Zusätzlich können alle MAC-Adressen in eine CSV-Datei exportiert werden.
+Dieses PowerShell-Skript automatisiert das Extrahieren und Aggregieren von Daten aus den Support-Dateien von DELL-Servern und die anschließende Eintragung in eine Excel-Tabelle mit  standardisiertem Design.
 
 ## Was macht das Skript?
 
-- **Durchsucht ZIP-Archive** nach HTML-Dateien (z.B. `viewer.html`)
-- **Extrahiert Netzwerkdaten** (z.B. MAC-Adressen, Port-Informationen) aus Tabellen in den HTML-Dateien
-- **Automatisiert den Browser** (Edge) mit Selenium, um auch dynamisch generierte Inhalte auszulesen
-- **Schreibt die Daten** in eine vorhandene Excel-Datei an die passende oder nächste freie Stelle
+1. **Enpacke das erste ZIP-Archiv** alle Support-Daten sind in verschachtelt in zwei ZIP-Archive gepackt.
+2. **Extrahiere view.html-Datei** durchsucht das zweite ZIP-Archiv nach der view.html-Datei und entpackt nur diese.
+3. **Automatisiert den Browser** (Chrome) mit Selenium, um auch dynamisch generierte Inhalte aus der view.html auszulesen
+4. **Extrahiert Daten aus der view.html-Datei** (z.B. MAC-Adressen, Port-Informationen, Seriennummern, Festplatten) aus Tabellen in den view.html-Datei
+5. **Pflege der Excel-Datei** schreibt alle extrahierten Daten in eine vorhandene Excel-Datei an die passende oder nächste freie Stelle, falls sie nicht bereits vorhanden sind
 
 ## Anforderungen
 
-- **PowerShell 5.1**
 - **Windows Betriebssystem**
-- **Microsoft Edge Browser**
-- **Microsoft Edge WebDriver** (`msedgedriver.exe`)  
-  - Muss im System-PATH liegen oder der Pfad muss beim Start von Selenium angegeben werden
+- **PowerShell 5.1**
+   - Ist auf allen gängigen Windows-Betriebssystemen vorinstalliert
 - **Selenium PowerShell-Modul**  
-  - Wird beim ersten Start automatisch installiert, falls nicht vorhanden
+  - Wird beim ersten Start des Skripts automatisch installiert, falls nicht vorhanden
+- **Google Chrome Browser**
+   - Muss vorher manuell installiert werden
+- **Google Chrome WebDriver** (`chromedriver.exe`)  
+  - Muss im System-PATH liegen oder der Pfad beim Start des Skripts als Parameter (PathToWebDriverDirectory) mit angegeben werden
 
 ## Nutzung
 
-1. **Skript herunterladen**  
+1. **Google Chrome installieren**
+
+2. **Google Chrome Web Driver installieren**
+   Hier der Download-Link für den Chrome Web Driver
+   https://googlechromelabs.github.io/chrome-for-testing/
+   Auf der Webseite muss man etwas runter-scrollen. Die erste Tabelle beinhaltet nämlich Installer für Chrome selbst. In der zweiten Tabelle dann in der Spalte "Binary" nach "chromedriver" suchen und manuell den Link aus der Zeile herauskopieren, welche zur Plattform und installierten Chorme-Version passt.
+
+3. **Skript herunterladen**  
    Lade die Datei `Skript.ps1` aus diesem Repository herunter und speichere sie auf deinem Rechner.
 
-2. **Skript ausführen**  
+4. **Skript ausführen**  
    Öffne eine PowerShell-Konsole und führe das Skript mit den gewünschten Parametern aus.
 
    Syntax:

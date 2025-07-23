@@ -70,7 +70,25 @@ param(
     [string]
     $PathToExcelFile,
 
-    # Pfad für die Log-Datei
+    # Pfad zur Excel-Datei
+    [Parameter(
+        Mandatory = $false,
+        HelpMessage = "Dies ist der Pfad zum Ordner, in welchem der Chrome Web Driver (muss 'chromedriver.exe' heißen) liegt."
+    )]
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if (-not ($_ -is [string] -and $_.Trim().Length -gt 0)) {
+            throw "Der Pfad darf nicht leer sein."
+        }
+        if (-not (Test-Path $_ -PathType Container)) {
+            throw "Der angegebene Pfad '$_' existiert nicht oder ist kein Verzeichnis."
+        }
+        return $true
+    })]
+    [string]
+    $PathToWebDriverDirectory,
+
+    # Pfad fuer die Log-Datei
     [Parameter(
         Mandatory = $false,
         HelpMessage = "Dies ist der Pfad zur Log-Datei."
@@ -90,7 +108,7 @@ param(
 
     # Silent-Mode
     [Parameter(
-        HelpMessage = "Im Silent-Mode gibt das Skript keinen Output/Text in der Konsole aus, wodurch es schneller läuft."
+        HelpMessage = "Im Silent-Mode gibt das Skript keinen Output/Text in der Konsole aus, wodurch es schneller laeuft."
     )]
     [switch]
     $Silent = $false
@@ -181,7 +199,7 @@ function Invoke-Sleep {
         [int]$Seconds
     )
     for ($i = $Seconds; $i -gt 0; $i--) {
-        Log "Schlafe für Sekunden = $i"
+        Log "Schlafe fuer Sekunden = $i"
         Start-Sleep -Seconds 1
     }
 }
@@ -198,9 +216,10 @@ if ($Silent) {
 
 #endregion
 
-#region Variablen
+#region Initialisierung
 
 # Assembly laden, um ZIP-Dateien zu bearbeiten
+Log "Lade Assembly 'System.IO.Compression.FileSystem'..."
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 # PowerShell-Modul "Selenium" importieren
@@ -222,45 +241,64 @@ if (-not (Get-Module -Name Selenium)) {
 
 #endregion
 
+#region Variablen
+
+$baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
+
+#endregion
+
 if (-not $Silent) {
     Log "Die Variable 'Silent' steht auf '$($Silent)'."
 }
 
 #region Extrahieren
 try {
-    Log "Starte die Verarbeitung aller ZIP-Dateien im Verzeichnis '$ZipFilesDirectory'..."
+    Log "Pruefe, ob ein temporaeres Verzeichnis fuer die Extraktion der ZIP- und HTML-Dateien existiert..."
+    if (-not (Test-Path $baseTempDir)) {
+        Log "  Dies wurde nicht gefunden. Erstelle ein temporaeres Verzeichnis fuer die Extraktion der ZIP- und HTML-Dateien..."
+        New-Item -ItemType Directory -Path $baseTempDir | Out-Null
+    } else {
+        Log "  Wurde gefunden. Existiert bereits."
+    }
 
-    $zipFiles  = Get-ChildItem -Path $ZipFilesDirectory -Filter "*.zip" -File -Recurse
+    Log "Starte die Verarbeitung aller ZIP-Dateien im Verzeichnis '$($ZipFilesDirectory)'..."
+
+    $zipFiles = Get-ChildItem -Path $ZipFilesDirectory -Filter "*.zip" -File -Recurse
+    Log "Gefundene ZIP-Dateien: $($zipFiles.Count)"
+    
     $htmlFiles = @()
+    $n = 0
 
     foreach ($zip in $zipFiles) {
-        Log "Verarbeite ZIP-Datei: $($zip.FullName)"
-        Log "Erstelle ein temporaeres Verzeichnis fuer die Extraktion der ZIP- und HTML-Dateien..."
-        $baseTempDir = Join-Path -Path $env:TEMP -ChildPath "_ParseHtmlFileContentsSkript"
-        if (-not (Test-Path $baseTempDir)) {
-            New-Item -ItemType Directory -Path $baseTempDir | Out-Null
-        }
-        $tempDir = Join-Path -Path $baseTempDir -ChildPath ([System.IO.Path]::GetRandomFileName())
+        $n++
+        Log "Verarbeite ZIP-Datei #$($n) von $($zipFiles.Count): $($zip.FullName)"
+        
+        $zipBaseName = [System.IO.Path]::GetFileNameWithoutExtension($zip.FullName)
+        $tempDir = Join-Path -Path $baseTempDir -ChildPath $zipBaseName
+        Log "Erstelle temporaeres Verzeichnis '$($tempDir)' fuer diese ZIP-Datei..."
         New-Item -ItemType Directory -Path $tempDir | Out-Null
-        Log "Temporaeres Verzeichnis erstellt: $tempDir"
 
-        Log "Extrahiere ZIP-Datei: $($zip.FullName)"
         try {
+            Log "Extrahiere ZIP-Datei $($zip.FullName) nach $($tempDir)..."
             [System.IO.Compression.ZipFile]::ExtractToDirectory($zip.FullName, $tempDir)
 
-            Log "Suche ZIP-Dateien im temporaeren Verzeichnis '$tempDir'..."
+            Log "  Suche ZIP-Dateien soeben extrahierten Verzeichnis '$($tempDir)'..."
             $SubZipFiles = Get-ChildItem -Path $tempDir -Filter "*.zip" -File
-            Log "Gefundene ZIP-Dateien: $($SubZipFiles.FullName)"
+            Log "    Anzahl der gefundene ZIP-Dateien: $($SubZipFiles.Count)"
+            Log "    Pfade der gefundenen ZIP-Dateien:"
+            foreach ($subZipFileFullName in $SubZipFiles.FullName) {
+                Log "    - $($subZipFileFullName)"
+            }
 
             foreach ($subZip in $SubZipFiles) {
-                Log "Durchsuche ZIP-Datei nach HTML-Datei: $($subZip.FullName)"
+                Log "      Durchsuche ZIP-Datei $($subZip.FullName) nach der HTML-Datei..."
                 $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($subZip.FullName)
                 foreach ($entry in $zipArchive.Entries) {
                     if ($entry.FullName -match '\.html?$') {
-                        Log "  - HTML-Datei gefunden: $($entry.FullName) ($($entry.Length) Bytes)"
+                        Log "        HTML-Datei gefunden: $($entry.FullName) ($($entry.Length) Bytes)"
 
                         $destPath = Join-Path $tempDir $entry.Name
-                        Log "    - Extrahiere $($entry.FullName) nach: $destPath"
+                        Log "          Extrahiere $($entry.FullName) nach: $($destPath)"
 
                         $entryStream = $entry.Open()
                         $fileStream  = [System.IO.File]::OpenWrite($destPath)
@@ -296,8 +334,13 @@ try {
     # Excel-Objekt erstellen und Datei oeffnen
     Log "Erstelle Excel-Objekt..."
     $excel = New-Object -ComObject Excel.Application
-    <# $excel.Visible = $false #>
-    $excel.Visible = $true
+
+    if ($Silent) {
+        $excel.Visible = $false
+    } else {
+        $excel.Visible = $true
+    }
+
     # Hole den absoluten Pfad und Dateinamen aus $PathToExcelFile
     Log "Loese Pfad zur Excel-Datei auf: $PathToExcelFile"
     $excelFullPath = Resolve-Path -Path $PathToExcelFile | Select-Object -ExpandProperty Path
@@ -307,9 +350,21 @@ try {
     Log "oeffne Excel-Datei: $excelFullPath"
     $workbook = $excel.Workbooks.Open($excelFullPath)
 
+    # Create a new instance of the Chrome driver
     Log "Initialisiere Webbrowser..."
-    # Create a new instance of the Edge driver
-    $driver = Start-SeChrome <# -Headless #> -Quiet -Arguments "--window-size=1920,1080"
+    if ($Silent) {
+        if ($PathToWebDriverDirectory) {
+            $driver = Start-SeChrome -Headless -Quiet -Arguments "--window-size=1920,1080" -WebDriverDirectory $PathToWebDriverDirectory
+        } else {
+            $driver = Start-SeChrome -Headless -Quiet -Arguments "--window-size=1920,1080"
+        }
+    } else {
+        if ($PathToWebDriverDirectory) {
+            $driver = Start-SeChrome -Quiet -Arguments @('start-maximized') -WebDriverDirectory $PathToWebDriverDirectory
+        } else {
+            $driver = Start-SeChrome -Quiet -Arguments @('start-maximized')
+        }
+    }
 
     # Timeout fuer FindElements auf 3 Sekunden setzen
     $Seconds = 2
@@ -343,7 +398,7 @@ try {
             Wait-ForElement -Driver $driver -Text "Model" -XPath "//th[normalize-space(text())='Model' and @scope='row']"
             # Finde das <th>-Element mit Text "Model" und scope="row"
             $modelTh = $driver.FindElementByXPath("//th[normalize-space(text())='Model' and @scope='row']")
-            # Finde das zugehörige <td>-Element (direktes Geschwisterelement)
+            # Finde das zugehoerige <td>-Element (direktes Geschwisterelement)
             $modelTd = $modelTh.FindElementByXPath("following-sibling::td[1]")
             # Finde das <span>-Element im <td> und lese den Text aus
             $ServerModel = $modelTd.FindElementByXPath(".//span").Text.Trim()
@@ -357,7 +412,7 @@ try {
             Log "Lese Tag aus..."
             # Finde das <th>-Element mit Text "Tag" und scope="row"
             $tagTh = $driver.FindElementByXPath("//th[normalize-space(text())='Tag' and @scope='row']")
-            # Finde das zugehörige <td>-Element (direktes Geschwisterelement)
+            # Finde das zugehoerige <td>-Element (direktes Geschwisterelement)
             $tagTd = $tagTh.FindElementByXPath("following-sibling::td[1]")
             # Finde das <span>-Element im <td> und lese den Text aus
             $Tag = $tagTd.FindElementByXPath(".//span").Text.Trim()
@@ -423,7 +478,7 @@ try {
             Log "Navigiere zur Ethernet-Seite..."
             $driver.Navigate().GoToUrl("$($filePath)#/hardware/ethernet")
 
-            # Warte auf Ethernet-Überschrift
+            # Warte auf Ethernet-ueberschrift
             Wait-ForElement -Driver $driver -Text "Ethernet" -XPath "//h2[contains(@class,'ui left header') and contains(normalize-space(text()),'Ethernet')]"
 
             # Warte auf Firmware-Tabellenspalte
@@ -671,164 +726,161 @@ try {
             Log "------------------------------------------------"
             Log "Pruefe, ob der Menuepunkt 'Physical Disks' existiert..."
             try {
-                # Prüfe, ob der Menüpunkt "Physical Disks" existiert, sonst überspringen
+                # Pruefe, ob der Menuepunkt "Physical Disks" existiert, sonst ueberspringen
                 $physicalDisksMenu = $driver.FindElements([OpenQA.Selenium.By]::XPath("//a[contains(@href,'#/hardware/physical-disk') and contains(normalize-space(text()),'Physical Disks')]"))
                 if (-not $physicalDisksMenu -or $physicalDisksMenu.Count -eq 0) {
-                    Log "'Physical Disks'-Menuepunkt nicht gefunden, überspringe diesen Abschnitt."
-                    continue
+                    Log "'Physical Disks'-Menuepunkt nicht gefunden, ueberspringe diesen Abschnitt."
+                    $PhysicalDisks = $null
                 } else {
                     Log "'Physical Disks'-Menuepunkt gefunden."
-                }
-                
-                # Log "Navigiere zu Physical Disk Seite..."
-                # Log "URL = $($filePath)#/hardware/physical-disk"
-                # $driver.Navigate().GoToUrl("$($filePath)#/hardware/physical-disk")
-                # $driver.Navigate().GoToUrl("$($filePath)#/hardware/physical-disk")
-                # $driver.Navigate().GoToUrl("$($filePath)#/hardware/physical-disk")
-                # Log "Habe zur Seite Physical Disk navigiert."
-                # Führe den Klick auf den Sidebar-Button nur aus, wenn $physicalDisksMenu nicht klickbar/verfügbar/sichtbar ist
-                if (-not $physicalDisksMenu -or $physicalDisksMenu.Count -eq 0 -or -not $physicalDisksMenu[0].Displayed) {
-                    Log "physicalDisksMenu wird NICHT angezeigt, darum wird die Sidebar nun angeklickt, um sie auszufahren."
-                    Log "Suche das Sidebar-Button-Element mit Klasse 'sidebar icon'..."
-                    try {
-                        $sidebarButton = $driver.FindElementByXPath("//button[contains(@class,'header') and contains(@class,'item') and .//i[contains(@class,'sidebar') and contains(@class,'icon')]]")
-                        if ($sidebarButton -and $sidebarButton.Displayed) {
-                            Log "Sidebar-Button gefunden. Klicke darauf..."
-                            $sidebarButton.Click()
-                            Log "Sidebar-Button wurde erfolgreich geklickt."
-                        } else {
-                            Log "Sidebar-Button nicht sichtbar oder nicht gefunden."
-                        }
-                    } catch {
-                        Log "Fehler beim Finden/Klicken des Sidebar-Buttons: $($_.Exception.Message)"
-                    }
-                } else {
-                    Log "physicalDisksMenu wird angezeigt, darum wird die Sidebar nicht angeklickt."
-                }
-
-                Log "Klicke auf das Element 'Physical Disks' im Menü"
-                if ($physicalDisksMenu.Count -gt 0) {
-                    $physicalDisksMenu[0].Click()
-                    Log "Habe auf den Menüpunkt 'Physical Disks' geklickt."
-                } else {
-                    Log "Habe NICHT auf den Menüpunkt 'Physical Disks' geklickt, da $physicalDisksMenu.Count kleiner, als Null ist."
-                }
-
-                # Warte darauf, dass die Überschrift "Physical Disks" und die Spalte "SAS Address" angezeigt werden
-                Log "Warte darauf, dass die Überschrift 'Physical Disks' angezeigt wird..."
-
-                $XPath = "//h2[contains(@class,'ui left header') and contains(normalize-space(text()),'Physical Disks')]"
-                $Text = "Physical Disks"
-                $TimeoutSeconds = 6
-                $elementFound = $false
-                for ($i = 0; $i -lt $TimeoutSeconds; $i++) {
-                    try {
-                        Log "i = $($i)"
-                        $element = $driver.FindElementByXPath($XPath)
-                        Log "element: $($element)"
-                        Log "element.Displayed = $($element.Displayed)"
-                        Log "element.Text = $($element.Text)"
-                        if ($element.Displayed -and $element.Text -eq $Text) {
-                            $elementFound = $true
-                            Log "Element '$Text' gefunden und sichtbar."
-                            break
-                        }
-                        Log "found = $($elementFound)"
-                        Start-Invoke-Sleep -Seconds 1
-                    } catch {
-                        Log "Element ist aktuell noch nicht da. Warte noch..."
-                    }
-                }
-                if (-not $elementFound) {
-                    throw "Timeout: Das Element mit dem Text '$Text' und XPath '$XPath' wurde nicht gefunden oder ist nicht sichtbar."
-                } elseif ($elementFound) {
-                    Log "Element '$Text' ist sichtbar."
-                }
-
-                # Wait-ForElement -Driver $driver -Text "Physical Disks" -XPath "//h2[contains(@class,'header') and contains(normalize-space(text()),'Physical Disks')]"
-                # Log "Warte darauf, dass die Spalte 'SAS Address' angezeigt wird..."
-                # Wait-ForElement -Driver $driver -Text "SAS Address" -XPath "//th[normalize-space(text())='SAS Address']"
-
-                # Suche das <h2>-Element mit Text "Physical Disks"
-                Log "Lese Storage-Controller-Tabelle (Physical Disk) aus..."
-                $physicalDisksHeader = $driver.FindElementByXPath("//h2[contains(@class,'header') and contains(normalize-space(text()),'Physical Disks')]")
-                if (-not $physicalDisksHeader) {
-                    throw "Überschrift 'Physical Disks' nicht gefunden."
-                }
-                Log "Überschrift 'Physical Disks' gefunden."
-
-                # Gehe von <h2> nach oben zum nächsten <article> und suche darin das <table>
-                $articleElement = $physicalDisksHeader.FindElementByXPath("ancestor::article[1]")
-                if (-not $articleElement) {
-                    throw "<article>-Element für 'Physical Disks' nicht gefunden."
-                }
-                Log "<article>-Element gefunden."
-
-                # Suche das <table> innerhalb des <article>
-                $tableElement = $articleElement.FindElement([OpenQA.Selenium.By]::XPath(".//table"))
-                if (-not $tableElement) {
-                    throw "<table>-Element für 'Physical Disks' nicht gefunden."
-                }
-                Log "<table>-Element für 'Physical Disks' gefunden."
-
-                # Hole alle <tbody>-Elemente der Tabelle
-                $tbodyElements = $tableElement.FindElements([OpenQA.Selenium.By]::TagName("tbody"))
-
-                $PhysicalDisks = @()
-
-                foreach ($tbody in $tbodyElements) {
-                    # Versuche den Storage Controller Namen aus dem ersten <tr> mit <div class='ui ribbon label'> zu extrahieren
-                    try {
-                        $controllerRow = $tbody.FindElement([OpenQA.Selenium.By]::XPath("./tr[td/div[contains(@class,'ribbon label')]]"))
-                        $controllerName = $controllerRow.FindElement([OpenQA.Selenium.By]::XPath(".//div[contains(@class,'ribbon label')]")).Text.Trim()
-                    } catch {
-                        $controllerName = "Unbekannt"
-                        Log "Controller-Name konnte nicht extrahiert werden: $($_.Exception.Message)"
-                    }
-
-                    # Hole alle Datenzeilen (tr), die KEIN <div class='ui ribbon label'> enthalten
-                    try {
-                        $dataRows = $tbody.FindElements([OpenQA.Selenium.By]::XPath("./tr[not(td/div[contains(@class,'ribbon label')])]"))
-                    } catch {
-                        Log "Fehler beim Extrahieren der Datenzeilen: $($_.Exception.Message)"
-                        continue
-                    }
-
-                    foreach ($row in $dataRows) {
+                        
+                    # Fuehre den Klick auf den Sidebar-Button nur aus, wenn $physicalDisksMenu nicht klickbar/verfuegbar/sichtbar ist
+                    if (-not $physicalDisksMenu -or $physicalDisksMenu.Count -eq 0 -or -not $physicalDisksMenu[0].Displayed) {
+                        Log "physicalDisksMenu wird NICHT angezeigt, darum wird die Sidebar nun angeklickt, um sie auszufahren."
+                        Log "Suche das Sidebar-Button-Element mit Klasse 'sidebar icon'..."
                         try {
-                            $cells = $row.FindElements([OpenQA.Selenium.By]::TagName("td"))
-                            if ($cells.Count -lt 10) { 
-                                Log "Zeile übersprungen: Zu wenig Zellen ($($cells.Count))."
-                                continue 
+                            $sidebarButton = $driver.FindElementByXPath("//button[contains(@class,'header') and contains(@class,'item') and .//i[contains(@class,'sidebar') and contains(@class,'icon')]]")
+                            if ($sidebarButton -and $sidebarButton.Displayed) {
+                                Log "Sidebar-Button gefunden. Klicke darauf..."
+                                $sidebarButton.Click()
+                                Log "Sidebar-Button wurde erfolgreich geklickt."
+                            } else {
+                                Log "Sidebar-Button nicht sichtbar oder nicht gefunden."
                             }
-
-                            $obj = [PSCustomObject]@{
-                                "Server Name"      = $Servername
-                                "Server Model"     = $ServerModel
-                                "Server Serial"    = $Tag
-                                "Storage Controller" = $controllerName
-                                "Slot"              = $cells[1].Text.Trim()
-                                "Gerät"             = $cells[5].Text.Trim()
-                                "Serial"            = $cells[7].Text.Trim()
-                                "SAS Address"       = $cells[8].Text.Trim()
-                            }
-                            $PhysicalDisks += $obj
                         } catch {
-                            Log "Fehler beim Verarbeiten einer Datenzeile: $($_.Exception.Message)"
+                            Log "Fehler beim Finden/Klicken des Sidebar-Buttons: $($_.Exception.Message)"
+                        }
+                    } else {
+                        Log "physicalDisksMenu wird angezeigt, darum wird die Sidebar nicht angeklickt."
+                    }
+
+                    Log "Klicke auf das Element 'Physical Disks' im Menue"
+                    if ($physicalDisksMenu.Count -gt 0) {
+                        $physicalDisksMenu[0].Click()
+                        Log "Habe auf den Menuepunkt 'Physical Disks' geklickt."
+                    } else {
+                        Log "Habe NICHT auf den Menuepunkt 'Physical Disks' geklickt, da $physicalDisksMenu.Count kleiner, als Null ist."
+                    }
+
+                    # Warte darauf, dass die ueberschrift "Physical Disks" und die Spalte "SAS Address" angezeigt werden
+                    Log "Warte darauf, dass die ueberschrift 'Physical Disks' angezeigt wird..."
+
+                    $XPath = "//h2[contains(@class,'ui left header') and contains(normalize-space(text()),'Physical Disks')]"
+                    $Text = "Physical Disks"
+                    $TimeoutSeconds = 6
+                    $elementFound = $false
+                    for ($i = 0; $i -lt $TimeoutSeconds; $i++) {
+                        try {
+                            Log "i = $($i)"
+                            $element = $driver.FindElementByXPath($XPath)
+                            Log "element: $($element)"
+                            Log "element.Displayed = $($element.Displayed)"
+                            Log "element.Text = $($element.Text)"
+                            if ($element.Displayed -and $element.Text -eq $Text) {
+                                $elementFound = $true
+                                Log "Element '$Text' gefunden und sichtbar."
+                                break
+                            }
+                            Log "found = $($elementFound)"
+                            Start-Invoke-Sleep -Seconds 1
+                        } catch {
+                            Log "Element ist aktuell noch nicht da. Warte noch..."
+                        }
+                    }
+
+                        
+                    if (-not $elementFound) {
+                        throw "Timeout: Das Element mit dem Text '$Text' und XPath '$XPath' wurde nicht gefunden oder ist nicht sichtbar."
+                    } elseif ($elementFound) {
+                        Log "Element '$Text' ist sichtbar."
+                    }
+
+                    # Log "Warte darauf, dass die Überschrift 'Physical Disks' angezeigt wird..."
+                    Wait-ForElement -Driver $driver -Text "Physical Disks" -XPath "//h2[contains(@class,'header') and contains(normalize-space(text()),'Physical Disks')]"
+                    # Log "Warte darauf, dass die Spalte 'SAS Address' angezeigt wird..."
+                    Wait-ForElement -Driver $driver -Text "SAS Address" -XPath "//th[normalize-space(text())='SAS Address']"
+
+                    Log "Lese Storage-Controller-Tabelle (Physical Disk) aus..."
+
+                    # Suche das <h2>-Element mit Text "Physical Disks"
+                    $physicalDisksHeader = $driver.FindElementByXPath("//h2[contains(@class,'header') and contains(normalize-space(text()),'Physical Disks')]")
+                    if (-not $physicalDisksHeader) {
+                        throw "ueberschrift 'Physical Disks' nicht gefunden."
+                    }
+                    Log "ueberschrift 'Physical Disks' gefunden."
+
+                    # Gehe von <h2> nach oben zum naechsten <article> und suche darin das <table>
+                    $articleElement = $physicalDisksHeader.FindElementByXPath("ancestor::article[1]")
+                    if (-not $articleElement) {
+                        throw "<article>-Element fuer 'Physical Disks' nicht gefunden."
+                    }
+                    Log "<article>-Element gefunden."
+
+                    # Suche das <table> innerhalb des <article>
+                    $tableElement = $articleElement.FindElement([OpenQA.Selenium.By]::XPath(".//table"))
+                    if (-not $tableElement) {
+                        throw "<table>-Element fuer 'Physical Disks' nicht gefunden."
+                    }
+                    Log "<table>-Element fuer 'Physical Disks' gefunden."
+
+                    # Hole alle <tbody>-Elemente der Tabelle
+                    $tbodyElements = $tableElement.FindElements([OpenQA.Selenium.By]::TagName("tbody"))
+
+                    $PhysicalDisks = @()
+
+                    foreach ($tbody in $tbodyElements) {
+                        # Versuche den Storage Controller Namen aus dem ersten <tr> mit <div class='ui ribbon label'> zu extrahieren
+                        try {
+                            $controllerRow = $tbody.FindElement([OpenQA.Selenium.By]::XPath("./tr[td/div[contains(@class,'ribbon label')]]"))
+                            $controllerName = $controllerRow.FindElement([OpenQA.Selenium.By]::XPath(".//div[contains(@class,'ribbon label')]")).Text.Trim()
+                        } catch {
+                            $controllerName = "Unbekannt"
+                            Log "Controller-Name konnte nicht extrahiert werden: $($_.Exception.Message)"
+                        }
+
+                        # Hole alle Datenzeilen (tr), die KEIN <div class='ui ribbon label'> enthalten
+                        try {
+                            $dataRows = $tbody.FindElements([OpenQA.Selenium.By]::XPath("./tr[not(td/div[contains(@class,'ribbon label')])]"))
+                        } catch {
+                            Log "Fehler beim Extrahieren der Datenzeilen: $($_.Exception.Message)"
                             continue
                         }
+
+                        foreach ($row in $dataRows) {
+                            try {
+                                $cells = $row.FindElements([OpenQA.Selenium.By]::TagName("td"))
+                                if ($cells.Count -lt 10) { 
+                                    Log "Zeile uebersprungen: Zu wenig Zellen ($($cells.Count))."
+                                    continue 
+                                }
+
+                                $obj = [PSCustomObject]@{
+                                    "Server Name"      = $Servername
+                                    "Server Model"     = $ServerModel
+                                    "Server Serial"    = $Tag
+                                    "Storage Controller" = $controllerName
+                                    "Slot"              = $cells[1].Text.Trim()
+                                    "Geraet"             = $cells[5].Text.Trim()
+                                    "Serial"            = $cells[7].Text.Trim()
+                                    "SAS Address"       = $cells[8].Text.Trim()
+                                }
+                                $PhysicalDisks += $obj
+                            } catch {
+                                Log "Fehler beim Verarbeiten einer Datenzeile: $($_.Exception.Message)"
+                                continue
+                            }
+                        }
+                    }
+
+                    # Ausgabe pruefen
+                    Log "PhysicalDisks extrahiert:"
+                    if (-not $Silent) {
+                        $PhysicalDisks | Format-Table -AutoSize
                     }
                 }
-
-                # Ausgabe pruefen
-                Log "PhysicalDisks extrahiert:"
-                if (-not $Silent) {
-                    $PhysicalDisks | Format-Table -AutoSize
-                }
-
             } catch {
                 Write-Error "Fehler beim Auslesen der Physical Disks: $($_.Exception.Message)"
-                # Skript läuft weiter, keinen terminierenden Error werfen
+                # Skript laeuft weiter, keinen terminierenden Error werfen
             }
 
             #endregion
@@ -841,7 +893,7 @@ try {
             $worksheet = $workbook.Worksheets.Item(10)
             $lastRow = $worksheet.UsedRange.Rows.Count
 
-            Log "Trage Daten in Excel (Arbeitsblatt 'Geräte Interface MAC') ein..."
+            Log "Trage Daten in Excel (Arbeitsblatt 'Geraete Interface MAC') ein..."
             $ServerRow = $null
             for ($i = 3; $i -le $lastRow; $i++) {
                 $cellValue = $worksheet.Cells.Item($i, 3).Value2
@@ -874,8 +926,8 @@ try {
                 }
             }
 
-            # Gerät
-            Log "Trage Model '$ServerModel' in Zeile $ServerRow, Spalte 4 mit der Überschrift 'Gerät' ein..."
+            # Geraet
+            Log "Trage Model '$ServerModel' in Zeile $ServerRow, Spalte 4 mit der ueberschrift 'Geraet' ein..."
             $worksheet.Cells.Item($ServerRow, 4).Value2 = $ServerModel
 
             # MAC Address > MAC
@@ -951,37 +1003,40 @@ try {
             $worksheet.Cells.Item($lastRow + 2,3).Font.Bold = $true
             $worksheet.Cells.Item($lastRow + 2,7).Value2 = $Tag
             $worksheet.Cells.Item($lastRow + 2,7).Font.Bold = $true
-            # Disks
-            $i = 0
-            foreach ($pd in $PhysicalDisks) {
-                $i++
 
-                # Spalte: Gerät
-                $worksheet.Cells.Item($lastRow + 2 + $i,4).Value2 = $pd."Gerät"
-                
-                # Spalte: Disk-Fach/Slot
-                $DiskType = $pd."Storage Controller".Split('')[0]
-                if ($DiskType -eq "Backplane") {
-                    $DiskType = "Slot"
+            if ($null -ne $PhysicalDisks -and $PhysicalDisks.Count -gt 0) {
+                # Disks
+                $i = 0
+                foreach ($pd in $PhysicalDisks) {
+                    $i++
+
+                    # Spalte: Geraet
+                    $worksheet.Cells.Item($lastRow + 2 + $i,4).Value2 = $pd."Geraet"
+                    
+                    # Spalte: Disk-Fach/Slot
+                    $DiskType = $pd."Storage Controller".Split('')[0]
+                    if ($DiskType -eq "Backplane") {
+                        $DiskType = "Slot"
+                    }
+
+                    # Fuehrende Null hinzufuegen
+                    if ([int]$pd.Slot -lt 10) {
+                        $Slot = "{0:D2}" -f [int]$pd.Slot
+                    } else {
+                        $Slot = $pd.Slot
+                    }
+
+                    $worksheet.Cells.Item($lastRow + 2 + $i,5).Value2 = "$($DiskType) $($Slot)"
+
+                    # Spalte: Disk Type
+                    $worksheet.Cells.Item($lastRow + 2 + $i,6).Value2 = $pd."Geraet"
+
+                    # Spalte: Seriennummer
+                    $worksheet.Cells.Item($lastRow + 2 + $i,7).Value2 = $pd.Serial
+
+                    # Spalte: SAS Address
+                    $worksheet.Cells.Item($lastRow + 2 + $i,8).Value2 = $pd."SAS Address"
                 }
-
-                # Führende Null hinzufügen
-                if ([int]$pd.Slot -lt 10) {
-                    $Slot = "{0:D2}" -f [int]$pd.Slot
-                } else {
-                    $Slot = $pd.Slot
-                }
-
-                $worksheet.Cells.Item($lastRow + 2 + $i,5).Value2 = "$($DiskType) $($Slot)"
-
-                # Spalte: Disk Type
-                $worksheet.Cells.Item($lastRow + 2 + $i,6).Value2 = $pd."Gerät"
-
-                # Spalte: Seriennummer
-                $worksheet.Cells.Item($lastRow + 2 + $i,7).Value2 = $pd.Serial
-
-                # Spalte: SAS Address
-                $worksheet.Cells.Item($lastRow + 2 + $i,8).Value2 = $pd."SAS Address"
             }
         } catch {
             Write-Error "  Fehler beim Verarbeiten der Datei '$($fileName)': $($_.Exception.Message)"
