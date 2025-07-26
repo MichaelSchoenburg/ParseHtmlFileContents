@@ -1,5 +1,5 @@
-# ParseHtmlFileContents
-[![CodeFactor](https://www.codefactor.io/repository/github/michaelschoenburg/parsehtmlfilecontents/badge/main)](https://www.codefactor.io/repository/github/michaelschoenburg/parsehtmlfilecontents/overview/main) ![PSScriptAnalyzer](https://github.com/michaelschoenburg/ParseHtmlFileContents/actions/workflows/psscriptanalyzer.yml/badge.svg) ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/michaelschoenburg/parsehtmlfilecontents/main?display_timestamp=author)
+# ExtractServerSupportDataToExcel
+[![CodeFactor](https://www.codefactor.io/repository/github/michaelschoenburg/ExtractServerSupportDataToExcel/badge/main)](https://www.codefactor.io/repository/github/michaelschoenburg/ExtractServerSupportDataToExcel/overview/main) ![PSScriptAnalyzer](https://github.com/michaelschoenburg/ExtractServerSupportDataToExcel/actions/workflows/psscriptanalyzer.yml/badge.svg) ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/michaelschoenburg/ExtractServerSupportDataToExcel/main?display_timestamp=author)
 
 ## Inhaltsverzeichnis
 
