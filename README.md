@@ -1,5 +1,5 @@
-# ExtractServerSupportDataToExcel
-[![CodeFactor](https://www.codefactor.io/repository/github/michaelschoenburg/ExtractServerSupportDataToExcel/badge/main)](https://www.codefactor.io/repository/github/michaelschoenburg/ExtractServerSupportDataToExcel/overview/main) ![PSScriptAnalyzer](https://github.com/michaelschoenburg/ExtractServerSupportDataToExcel/actions/workflows/psscriptanalyzer.yml/badge.svg) ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/michaelschoenburg/ExtractServerSupportDataToExcel/main?display_timestamp=author)
+# ExtractServerSupportDataToExcelViaSelenium
+[![CodeFactor](https://www.codefactor.io/repository/github/michaelschoenburg/ExtractServerSupportDataToExcelViaSelenium/badge/main)](https://www.codefactor.io/repository/github/michaelschoenburg/ExtractServerSupportDataToExcelViaSelenium/overview/main) ![PSScriptAnalyzer](https://github.com/michaelschoenburg/ExtractServerSupportDataToExcelViaSelenium/actions/workflows/psscriptanalyzer.yml/badge.svg) ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/michaelschoenburg/ExtractServerSupportDataToExcelViaSelenium/main?display_timestamp=author)
 
 ## Inhaltsverzeichnis
 
